@@ -134,18 +134,118 @@ body {
     font-size: 0.85rem;
 }
 
-.assistant-chart-image,
-.assistant-chart-iframe {
+.assistant-chart-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     width: 100%;
-    min-height: 280px;
-    border: 0;
-    border-radius: 10px;
+    max-width: 100%;
+}
+
+.assistant-chart-media {
+    width: 100%;
+    max-height: 420px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    padding: 6px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 
 .assistant-chart-image {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
     object-fit: contain;
-    background: #fff;
+    border-radius: 6px;
+    display: block;
 }
+
+.assistant-chart-iframe-wrap {
+    width: 100%;
+    height: 100%;
+}
+
+.assistant-chart-iframe {
+    width: 100%;
+    height: 360px;
+    border: 0;
+    border-radius: 6px;
+}
+
+/* make sure bubble doesn't allow overflow from children */
+.bubble { max-width: 88%; overflow: hidden; }
+
+/* nicer text blocks */
+.assistant-text-block {
+    background: linear-gradient(180deg,#ffffff,#f7f7f7);
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+/* Image modal */
+.assistant-image-modal { display:none; }
+.assistant-image-modal.open { display:block; position:fixed; left:0; top:0; right:0; bottom:0; z-index:9999; }
+.assistant-image-modal-backdrop { position:absolute; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.55); }
+.assistant-image-modal-content { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); max-width:90%; max-height:90%; background:transparent; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.assistant-image-modal-img { max-width:100%; max-height:calc(90vh - 120px); border-radius:8px; box-shadow:0 6px 30px rgba(0,0,0,0.35); }
+.assistant-image-modal-close { position:absolute; right:6px; top:6px; z-index:10001; background:rgba(0,0,0,0.6); color:#fff; border:0; width:36px; height:36px; border-radius:18px; font-size:20px; cursor:pointer; }
+.assistant-image-modal-caption { color:#fff; font-size:0.95rem; text-align:center; max-width:90%; }
+
+/* Adaptive card / reasoning */
+.assistant-adaptive-card { margin-top:8px; padding:10px; border-radius:10px; background:linear-gradient(180deg,#fff,#fbfbfb); border:1px solid rgba(0,0,0,0.04); }
+.assistant-reasoning-accordion { display:flex; flex-direction:column; gap:6px; }
+.assistant-reasoning-item { border-radius:8px; overflow:hidden; }
+.assistant-reasoning-header { width:100%; text-align:left; background:#f3f6f8; border:0; padding:8px 10px; font-weight:600; cursor:pointer; }
+.assistant-reasoning-body { padding:8px 10px; background:#fff; border-top:1px solid rgba(0,0,0,0.03); }
+.assistant-view-sources { display:inline-block; margin-top:8px; color:#007aff; text-decoration:none; font-weight:600; }
+.assistant-view-sources:hover { text-decoration:underline; }
+
+/* Tag block rendering for reconstructed tag content */
+.assistant-tag-block { display:flex; flex-direction:column; gap:6px; margin-top:8px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(0,0,0,0.03); }
+.assistant-tag-marker { color:#666; font-family:monospace; font-size:0.92rem; }
+.assistant-tag-block .assistant-text-block { margin:6px 0 0 0; }
+
+/* Agent panels */
+.assistant-agent-panel { margin-top:10px; border:1px solid rgba(0,0,0,0.04); border-radius:8px; overflow:hidden; background:#fbfbfb; }
+.assistant-agent-header { display:flex; gap:8px; align-items:center; justify-content:flex-start; padding:8px 10px; background:#f0f4f6; }
+.assistant-agent-header strong { flex:1; }
+.assistant-agent-toggle { background:#007aff; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; }
+.assistant-agent-status { display:inline-flex; align-items:center; gap:8px; margin-left:8px; }
+.assistant-agent-spinner { color:#555; font-size:0.9rem; }
+.assistant-agent-check { display:inline-flex; align-items:center; }
+.assistant-agent-content { padding:8px 10px; }
+
+.assistant-agent-done { border-left:4px solid #22c55e; }
+
+/* final block highlight */
+.assistant-final-block { margin-top:10px; padding:12px; border-radius:10px; background:linear-gradient(180deg,#fefefe,#fff7e6); border:1px solid rgba(255,193,7,0.15); }
+
+/* Fancy consolidated final block */
+.assistant-fancy-final { display:flex; gap:12px; margin-top:12px; padding:12px; border-radius:12px; background:linear-gradient(180deg,#ffffff,#fbfbfb); border:1px solid rgba(0,0,0,0.04); box-shadow:0 6px 18px rgba(0,0,0,0.04); align-items:flex-start; }
+.assistant-fancy-left { flex:0 0 260px; }
+.assistant-fancy-image { width:100%; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.08); cursor:zoom-in; }
+.assistant-fancy-right { flex:1; display:flex; flex-direction:column; gap:10px; }
+.assistant-fancy-right h4 { margin:0; }
+.assistant-fancy-section { background:#fff; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.04); }
+.assistant-fancy-section h5 { margin:0 0 8px 0; font-size:0.95rem; }
+.assistant-fancy-section-body { font-size:0.95rem; color:#222; }
+
+/* gallery thumbnails */
+.assistant-gallery { display:flex; gap:8px; overflow-x:auto; padding:6px 0; }
+.assistant-gallery img { height:80px; border-radius:6px; cursor:zoom-in; }
+
+/* sources modal */
+.assistant-sources-modal { display:none; }
+.assistant-sources-modal.open { display:block; position:fixed; left:0; top:0; right:0; bottom:0; z-index:10000; }
+.assistant-sources-backdrop { position:absolute; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.6); }
+.assistant-sources-content { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:80%; max-height:80%; overflow:auto; background:#fff; color:#333; padding:16px; border-radius:8px; }
+.assistant-sources-close { position:absolute; right:8px; top:8px; background:#333; color:#fff; border:0; width:36px; height:36px; border-radius:18px; }
 /* Assistant bubble (incoming message) */
 .message.assistant .bubble {
     background-color: #e5e5ea;

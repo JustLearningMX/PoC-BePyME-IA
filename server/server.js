@@ -41,6 +41,22 @@ const oauthRedirectUri = process.env.QLIK_OAUTH_REDIRECT_URI || `${backendOrigin
 app.use(express.json());
 app.use(cors({ origin: frontendOrigin, credentials: true }));
 
+// Serve example reasoning/embed images (read-only)
+const embedImagesDir = path.resolve(process.cwd(), 'referencias', 'Razonamiento-Embed');
+if (fs.existsSync(embedImagesDir)) {
+  app.use('/referencias-Razonamiento-Embed', express.static(embedImagesDir, { index: false }));
+}
+
+app.get('/debug/embed-images', (_req, res) => {
+  try {
+    if (!fs.existsSync(embedImagesDir)) return res.json({ images: [] });
+    const files = fs.readdirSync(embedImagesDir).filter(f => /\.(png|jpg|jpeg|gif)$/i.test(f));
+    res.json({ images: files.map(f => `/referencias-Razonamiento-Embed/${f}`) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function normalizeHost(rawHost) {
   if (!rawHost) return null;
   return String(rawHost).replace(/\/$/, "");
