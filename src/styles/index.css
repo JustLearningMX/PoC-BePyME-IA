@@ -1,0 +1,23 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+}
+.counter {
+    font-size: 2rem;
+    margin: 20px 0;
+}
+button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    margin: 5px;
+    cursor: pointer;
+}
+
+#assistant-demo {
+    border: 1px solid #ccc;
+    width: 100%;
+    /* Full width of the screen */
+    height: 78vh;
+    /* 78% of the viewport height */
+}

@@ -1,0 +1,1 @@
+﻿{"path":"/api/v1/cloud-assistants/6cf8659a-b716-4400-a011-a40931c94ae8/actions/stream","method":"POST","body":{"context":{"type":"assistant","id":"47461ad6-b716-4400-a011-a40931c94ae8","data":{"embedded":true,"route":"assistants"}},"content":[{"text":"Cuantos clientes tengo"}]}}

@@ -1,0 +1,426 @@
+Primero llama a este endpoint:
+Request URL
+https://dataiq-mexico.us.qlikcloud.com/api/v1/assistants?limit=100
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2600:9000:a51a:cee6:19ae:c7e8:7915:64ff]:443
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:63343
+access-control-expose-headers
+Qlik-CSRF-Token,Content-Location,Location
+content-encoding
+gzip
+content-type
+application/json
+date
+Sat, 16 May 2026 14:05:34 GMT
+qlik-api-version
+2024-05
+server
+envoy
+statefulsessionheader
+MTAuMTAuMTA3Ljg6MTAyNTU=
+vary
+Accept-Encoding
+x-envoy-upstream-service-time
+438
+:authority
+dataiq-mexico.us.qlikcloud.com
+:method
+GET
+:path
+/api/v1/assistants?limit=100
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en
+authorization
+Bearer eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6IjF4NTFSdmxuUmU4dUtqWFVGX0FOY0pkUGt4T1Z6Z2hoWUNEVkZuUVZ2RXcifQ.eyJzdWJUeXBlIjoidXNlciIsInB1cnBvc2UiOiJhY2Nlc3NUb2tlbiIsImp0aSI6IjlJZU9kaEp1OXN0c01ramJ2UE8xZVFQWHZJS2hySjE2IiwiaWF0IjoxNzc4OTQwMzEzLCJleHAiOjE3Nzg5NjE5MTMsImF1ZCI6Imh0dHBzOi8vZGF0YWlxLW1leGljby51cy5xbGlrY2xvdWQuY29tIiwiaXNzIjoicWxpay5hcGkifQ.nNZjrDrOSbd_LCCmQM8sjlM9Lxw-eu6E3sMN6HOhaY1XH1xqOUxJjkb6sBoo4Wvy2SI4GqyQMzHDL2g0APjkie73d7Sl008TOgtuqmd1U4a7FlDXT_1PNYO8nxpmnrx7
+origin
+http://localhost:63343
+priority
+u=1, i
+referer
+http://localhost:63343/
+sec-ch-ua
+"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+cross-site
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+
+Despues llama este:
+Request URL
+https://dataiq-mexico.us.qlikcloud.com/api/v1/cloud-assistants/threads
+Request Method
+POST
+Status Code
+201 Created
+Remote Address
+[2600:9000:a51a:cee6:19ae:c7e8:7915:64ff]:443
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:63343
+access-control-expose-headers
+Qlik-CSRF-Token,Content-Location,Location
+content-length
+355
+content-type
+application/json
+date
+Sat, 16 May 2026 14:05:34 GMT
+last-modified
+2026-05-16T14:05:34Z
+qlik-api-version
+2024-05
+server
+envoy
+statefulsessionheader
+MTAuMTAuNjUuMTk6MTAyNTU=
+x-envoy-upstream-service-time
+29
+:authority
+dataiq-mexico.us.qlikcloud.com
+:method
+POST
+:path
+/api/v1/cloud-assistants/threads
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en
+authorization
+Bearer eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6IjF4NTFSdmxuUmU4dUtqWFVGX0FOY0pkUGt4T1Z6Z2hoWUNEVkZuUVZ2RXcifQ.eyJzdWJUeXBlIjoidXNlciIsInB1cnBvc2UiOiJhY2Nlc3NUb2tlbiIsImp0aSI6IjlJZU9kaEp1OXN0c01ramJ2UE8xZVFQWHZJS2hySjE2IiwiaWF0IjoxNzc4OTQwMzEzLCJleHAiOjE3Nzg5NjE5MTMsImF1ZCI6Imh0dHBzOi8vZGF0YWlxLW1leGljby51cy5xbGlrY2xvdWQuY29tIiwiaXNzIjoicWxpay5hcGkifQ.nNZjrDrOSbd_LCCmQM8sjlM9Lxw-eu6E3sMN6HOhaY1XH1xqOUxJjkb6sBoo4Wvy2SI4GqyQMzHDL2g0APjkie73d7Sl008TOgtuqmd1U4a7FlDXT_1PNYO8nxpmnrx7
+content-length
+168
+content-type
+application/json
+origin
+http://localhost:63343
+priority
+u=1, i
+referer
+http://localhost:63343/
+sec-ch-ua
+"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+cross-site
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+
+Despues a este:
+Request URL
+https://dataiq-mexico.us.qlikcloud.com/api/v1/assistants/47461ad6-1685-4ed6-a00a-e0f6224b3b0d
+Request Method
+GET
+Status Code
+200 OK (from disk cache)
+Remote Address
+[2600:9000:a51a:cee6:19ae:c7e8:7915:64ff]:443
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:63343
+access-control-expose-headers
+Qlik-CSRF-Token,Content-Location,Location
+content-length
+548
+content-type
+application/json
+date
+Sat, 16 May 2026 13:26:25 GMT
+etag
+63FF5D60
+last-modified
+Fri, 15 May 2026 21:54:05 UTC
+qlik-api-version
+2024-05
+server
+envoy
+statefulsessionheader
+MTAuMTAuNDIuMjE6MTAyNTU=
+x-envoy-upstream-service-time
+28
+accept-language
+en
+authorization
+Bearer eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6IjF4NTFSdmxuUmU4dUtqWFVGX0FOY0pkUGt4T1Z6Z2hoWUNEVkZuUVZ2RXcifQ.eyJzdWJUeXBlIjoidXNlciIsInB1cnBvc2UiOiJhY2Nlc3NUb2tlbiIsImp0aSI6IjlJZU9kaEp1OXN0c01ramJ2UE8xZVFQWHZJS2hySjE2IiwiaWF0IjoxNzc4OTQwMzEzLCJleHAiOjE3Nzg5NjE5MTMsImF1ZCI6Imh0dHBzOi8vZGF0YWlxLW1leGljby51cy5xbGlrY2xvdWQuY29tIiwiaXNzIjoicWxpay5hcGkifQ.nNZjrDrOSbd_LCCmQM8sjlM9Lxw-eu6E3sMN6HOhaY1XH1xqOUxJjkb6sBoo4Wvy2SI4GqyQMzHDL2g0APjkie73d7Sl008TOgtuqmd1U4a7FlDXT_1PNYO8nxpmnrx7
+referer
+http://localhost:63343/
+sec-ch-ua
+"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+
+Sigue este:
+Request URL
+https://dataiq-mexico.us.qlikcloud.com/api/v1/assistants/47461ad6-1685-4ed6-a00a-e0f6224b3b0d/contents
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2600:9000:a51a:cee6:19ae:c7e8:7915:64ff]:443
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:63343
+access-control-expose-headers
+Qlik-CSRF-Token,Content-Location,Location
+content-length
+713
+content-type
+application/json
+date
+Sat, 16 May 2026 14:05:34 GMT
+qlik-api-version
+2024-05
+server
+envoy
+statefulsessionheader
+MTAuMTAuNDIuMjE6MTAyNTU=
+x-envoy-upstream-service-time
+17
+:authority
+dataiq-mexico.us.qlikcloud.com
+:method
+GET
+:path
+/api/v1/assistants/47461ad6-1685-4ed6-a00a-e0f6224b3b0d/contents
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en
+authorization
+Bearer eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6IjF4NTFSdmxuUmU4dUtqWFVGX0FOY0pkUGt4T1Z6Z2hoWUNEVkZuUVZ2RXcifQ.eyJzdWJUeXBlIjoidXNlciIsInB1cnBvc2UiOiJhY2Nlc3NUb2tlbiIsImp0aSI6IjlJZU9kaEp1OXN0c01ramJ2UE8xZVFQWHZJS2hySjE2IiwiaWF0IjoxNzc4OTQwMzEzLCJleHAiOjE3Nzg5NjE5MTMsImF1ZCI6Imh0dHBzOi8vZGF0YWlxLW1leGljby51cy5xbGlrY2xvdWQuY29tIiwiaXNzIjoicWxpay5hcGkifQ.nNZjrDrOSbd_LCCmQM8sjlM9Lxw-eu6E3sMN6HOhaY1XH1xqOUxJjkb6sBoo4Wvy2SI4GqyQMzHDL2g0APjkie73d7Sl008TOgtuqmd1U4a7FlDXT_1PNYO8nxpmnrx7
+origin
+http://localhost:63343
+priority
+u=1, i
+referer
+http://localhost:63343/
+sec-ch-ua
+"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+cross-site
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+
+Despues este:
+Request URL
+https://dataiq-mexico.us.qlikcloud.com/api/v1/cloud-assistants/6cf8659a-b716-4400-a011-a40931c94ae8/actions/stream
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+[2600:9000:a51a:cee6:19ae:c7e8:7915:64ff]:443
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:63343
+access-control-expose-headers
+Qlik-CSRF-Token,Content-Location,Location
+cache-control
+no-cache
+content-type
+text/event-stream
+date
+Sat, 16 May 2026 14:05:35 GMT
+qlik-api-version
+2024-05
+server
+envoy
+statefulsessionheader
+MTAuMTAuNjUuMTk6MTAyNTU=
+x-envoy-upstream-service-time
+788
+:authority
+dataiq-mexico.us.qlikcloud.com
+:method
+POST
+:path
+/api/v1/cloud-assistants/6cf8659a-b716-4400-a011-a40931c94ae8/actions/stream
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en
+authorization
+Bearer eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6IjF4NTFSdmxuUmU4dUtqWFVGX0FOY0pkUGt4T1Z6Z2hoWUNEVkZuUVZ2RXcifQ.eyJzdWJUeXBlIjoidXNlciIsInB1cnBvc2UiOiJhY2Nlc3NUb2tlbiIsImp0aSI6IjlJZU9kaEp1OXN0c01ramJ2UE8xZVFQWHZJS2hySjE2IiwiaWF0IjoxNzc4OTQwMzEzLCJleHAiOjE3Nzg5NjE5MTMsImF1ZCI6Imh0dHBzOi8vZGF0YWlxLW1leGljby51cy5xbGlrY2xvdWQuY29tIiwiaXNzIjoicWxpay5hcGkifQ.nNZjrDrOSbd_LCCmQM8sjlM9Lxw-eu6E3sMN6HOhaY1XH1xqOUxJjkb6sBoo4Wvy2SI4GqyQMzHDL2g0APjkie73d7Sl008TOgtuqmd1U4a7FlDXT_1PNYO8nxpmnrx7
+content-length
+168
+content-type
+application/json
+origin
+http://localhost:63343
+priority
+u=1, i
+referer
+http://localhost:63343/
+sec-ch-ua
+"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+cross-site
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+
+Y finalmente recibe muchos de este tipo:
+Request URL
+https://events.launchdarkly.com/events/bulk/620e2b1f2a1c6e14a129cc4f
+Request Method
+POST
+Status Code
+202 Accepted
+Remote Address
+34.198.76.125:443
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-headers
+Accept,Content-Type,Content-Length,Accept-Encoding,X-LaunchDarkly-Event-Schema,X-LaunchDarkly-User-Agent,X-LaunchDarkly-Payload-ID,X-LaunchDarkly-Wrapper,X-LaunchDarkly-Tags
+access-control-allow-methods
+POST,OPTIONS
+access-control-allow-origin
+*
+access-control-expose-headers
+Date
+access-control-max-age
+300
+content-length
+0
+content-type
+application/json
+date
+Sat, 16 May 2026 14:05:34 GMT
+strict-transport-security
+max-age=31536000; includeSubDomains
+:authority
+events.launchdarkly.com
+:method
+POST
+:path
+/events/bulk/620e2b1f2a1c6e14a129cc4f
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en-US,en;q=0.9,es;q=0.8
+content-length
+1304
+content-type
+application/json
+origin
+http://localhost:63343
+priority
+u=1, i
+referer
+http://localhost:63343/
+sec-ch-ua
+"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+cross-site
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+x-launchdarkly-event-schema
+4
+x-launchdarkly-payload-id
+4e12efe0-5130-11f1-81ac-d906ea320691
+x-launchdarkly-user-agent
+JSClient/3.9.1
+
+De la llamada al stream:
+curl 'https://dataiq-mexico.us.qlikcloud.com/api/v1/cloud-assistants/6cf8659a-b716-4400-a011-a40931c94ae8/actions/stream' \
+  -H 'accept: */*' \
+  -H 'accept-language: en' \
+  -H 'authorization: Bearer eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6IjF4NTFSdmxuUmU4dUtqWFVGX0FOY0pkUGt4T1Z6Z2hoWUNEVkZuUVZ2RXcifQ.eyJzdWJUeXBlIjoidXNlciIsInB1cnBvc2UiOiJhY2Nlc3NUb2tlbiIsImp0aSI6IjlJZU9kaEp1OXN0c01ramJ2UE8xZVFQWHZJS2hySjE2IiwiaWF0IjoxNzc4OTQwMzEzLCJleHAiOjE3Nzg5NjE5MTMsImF1ZCI6Imh0dHBzOi8vZGF0YWlxLW1leGljby51cy5xbGlrY2xvdWQuY29tIiwiaXNzIjoicWxpay5hcGkifQ.nNZjrDrOSbd_LCCmQM8sjlM9Lxw-eu6E3sMN6HOhaY1XH1xqOUxJjkb6sBoo4Wvy2SI4GqyQMzHDL2g0APjkie73d7Sl008TOgtuqmd1U4a7FlDXT_1PNYO8nxpmnrx7' \
+  -H 'content-type: application/json' \
+  -H 'origin: http://localhost:63343' \
+  -H 'priority: u=1, i' \
+  -H 'referer: http://localhost:63343/' \
+  -H 'sec-ch-ua: "Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Windows"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: cross-site' \
+  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36' \
+  --data-raw '{"context":{"type":"assistant","id":"47461ad6-1685-4ed6-a00a-e0f6224b3b0d","data":{"embedded":true,"route":"assistants"}},"content":[{"text":"Cuantos clientes tengo"}]}'
+  
