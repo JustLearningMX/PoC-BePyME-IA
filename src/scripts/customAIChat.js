@@ -236,10 +236,10 @@ document.addEventListener("DOMContentLoaded", () => {
             iframe.loading = "lazy";
             iframeWrap.appendChild(iframe);
             mediaWrap.appendChild(iframeWrap);
-        } else {
-            const pre = document.createElement("pre");
-            pre.textContent = JSON.stringify(chartLike, null, 2);
-            mediaWrap.appendChild(pre);
+        } else if (chartLike?.title || chartLike?.name) {
+            const note = document.createElement("p");
+            note.textContent = chartLike.title || chartLike.name;
+            mediaWrap.appendChild(note);
         }
 
         block.appendChild(mediaWrap);
@@ -354,46 +354,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            // Build a consolidated, fancy final block (image + per-agent content)
-            try {
-                const fancy = document.createElement('div');
-                fancy.className = 'assistant-fancy-final';
-
-                const left = document.createElement('div');
-                left.className = 'assistant-fancy-left';
-                const img = document.createElement('img');
-                img.className = 'assistant-fancy-image';
-                img.alt = 'Summary image';
-                img.src = `${backendBaseUrl}/referencias-Razonamiento-Embed/img_5.png`;
-                img.addEventListener('click', () => openImageModal(img.src, 'Final summary'));
-                left.appendChild(img);
-
-                const right = document.createElement('div');
-                right.className = 'assistant-fancy-right';
-
-                const title = document.createElement('h4');
-                title.textContent = 'Final consolidated answer';
-                right.appendChild(title);
-
-                if (ui._agentPanels) {
-                    Object.keys(ui._agentPanels).forEach((name) => {
-                        const sec = document.createElement('div');
-                        sec.className = 'assistant-fancy-section';
-                        const h5 = document.createElement('h5'); h5.textContent = name; sec.appendChild(h5);
-                        const body = document.createElement('div');
-                        body.className = 'assistant-fancy-section-body';
-                        // clone node content to preserve events
-                        body.innerHTML = ui._agentPanels[name].content.innerHTML || '';
-                        sec.appendChild(body);
-                        right.appendChild(sec);
-                    });
-                }
-
-                fancy.appendChild(left);
-                fancy.appendChild(right);
-                ui.content.appendChild(fancy);
-            } catch (e) {}
-
             ui._currentAgent = null;
             return;
         }
@@ -474,15 +434,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return ui._agentPanels[agentName];
         }
 
-        function markAgentDone(agentName) {
-            if (!ui._agentPanels || !ui._agentPanels[agentName]) return;
-            const panel = ui._agentPanels[agentName];
-            try {
-                panel.spinner.style.display = 'none';
-                panel.check.style.display = 'inline-block';
-                panel.wrap.classList.add('assistant-agent-done');
-            } catch (e) {}
-        }
 
         // route payloads to current open agent if set
         ui._currentAgent = ui._currentAgent || null;
@@ -573,12 +524,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         thumb.className = 'assistant-chart-image';
                         thumb.alt = chart?.title || 'chart';
                         thumb.src = chart?.imageUrl || chart?.src || '';
-                        if (!thumb.src) {
-                            // fallback to example images
-                            fetch(`${backendBaseUrl}/debug/embed-images`).then(r => r.json()).then(data => {
-                                if (data && Array.isArray(data.images) && data.images.length) thumb.src = data.images[0];
-                            }).catch(()=>{});
-                        }
+                        if (!thumb.src) return;
                         thumb.addEventListener('click', () => openImageModal(thumb.src, chart?.title || 'Chart'));
                         gallery.appendChild(thumb);
                     });
@@ -604,11 +550,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     thumb.className = 'assistant-chart-image';
                     thumb.alt = chart?.title || 'chart';
                     thumb.src = chart?.imageUrl || chart?.src || '';
-                    if (!thumb.src) {
-                        fetch(`${backendBaseUrl}/debug/embed-images`).then(r => r.json()).then(data => {
-                            if (data && Array.isArray(data.images) && data.images.length) thumb.src = data.images[0];
-                        }).catch(()=>{});
-                    }
+                    if (!thumb.src) return;
                     thumb.addEventListener('click', () => openImageModal(thumb.src, chart?.title || 'Chart'));
                     gallery.appendChild(thumb);
                 });
@@ -624,7 +566,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (payload.sources || payload.object || payload.items || payload.type || payload.imageUrl || payload.src) {
             appendObjectBlock(ui.content, payload.title || payload.type || "Objeto", payload);
-            return;
         }
 
         //appendObjectBlock(ui.content, "Respuesta", payload);
@@ -792,11 +733,12 @@ document.addEventListener("DOMContentLoaded", () => {
         evtSource.onmessage = (event) => {
             if (!event.data) return;
 
-            let payload = event.data;
+            const rawData = event.data;
+            let payload;
             try {
-                payload = JSON.parse(event.data);
+                payload = JSON.parse(rawData);
             } catch {
-                payload = { kind: "text", text: event.data };
+                payload = { kind: "text", text: rawData };
             }
 
             renderAssistantPayload(assistantUI, payload);
