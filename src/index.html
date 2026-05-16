@@ -20,29 +20,39 @@
     ></script>
 </head>
 <body>
-<h1>CRM BePyME Asistente</h1>
+<h3 style="text-align: center">CRM BePyME Asistente</h3>
 
 <section
         style="
             display: flex;
             gap: 25px;
             width: 100%;
-            background-color: #f0f0f0;
             padding: 20px;
-            border: 1px solid darkolivegreen;
+            /*box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;*/
+            box-sizing: border-box;
+            align-items: stretch;
+            height: calc(100vh - 80px);
         "
 >
-    <article style="width: 45%; border: 1px solid cornflowerblue; ">
+    <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
         <!--In this example, we will show how to use the Qlik AI Assistant component. -->
-        <qlik-embed
-                ui="ai/agentic-assistant"
-                assistant-id="47461ad6-1685-4ed6-a00a-e0f6224b3b0d"
-        ></qlik-embed>
+        <!--<div style="
+            box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;
+            min-width: 500px;
+            margin: 0 auto;
+        ">-->
+        <div class="chat-container">
+            <qlik-embed
+                    ui="ai/agentic-assistant"
+                    assistant-id="47461ad6-1685-4ed6-a00a-e0f6224b3b0d"
+                    language="es"
+            ></qlik-embed>
+        </div>
     </article>
 
-    <article style="width: 45%; border: 1px solid cornflowerblue; ">
+    <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
         <!-- This example shows how to use the Qlik AI Assistant component with a Knowledgebases API and Assistants API to build a custom chat assistant.-->
-        <div class="chat-container">
+        <div class="chat-container" style="min-height: 600px">
             <div class="chat-header">
                 <h4>Tu asistente</h4>
                 <span class="header-span">Pregunta, Qlik responde.</span>
