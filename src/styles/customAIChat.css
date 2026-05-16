@@ -275,3 +275,67 @@ h4 {
 .header-span {
     font-size: 14px;
 }
+
+/* Final Result Card */
+.assistant-final-card {
+    margin-top: 12px;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid rgba(76, 175, 80, 0.2);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+    overflow: hidden;
+}
+
+.assistant-final-card-title {
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.assistant-final-card-title::before {
+    content: "✓";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #4caf50;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.assistant-final-card-content {
+    margin: 0 0 14px 0;
+    padding: 12px;
+    background: #ffffff;
+    border-left: 4px solid #4caf50;
+    border-radius: 6px;
+    color: #374151;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.assistant-final-card-content strong {
+    color: #1f2937;
+    font-weight: 700;
+}
+
+.assistant-final-card-embed {
+    margin: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: white;
+}
+
+.assistant-final-card-embed qlik-embed {
+    width: 100%;
+    min-height: 300px;
+}

@@ -5,6 +5,111 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chat-input");
     const sendButton = document.getElementById("send-btn");
     const backendBaseUrl = "http://localhost:3001";
+    const qlikConfigPromise = fetch(`${backendBaseUrl}/debug/env`, { credentials: "include" })
+        .then((response) => response.ok ? response.json() : {})
+        .catch(() => ({}));
+
+    async function getQlikAppId() {
+        const cfg = await qlikConfigPromise;
+        return cfg.QLIK_APP_ID || null;
+    }
+
+    async function getQlikAssistantId() {
+        const cfg = await qlikConfigPromise;
+        return cfg.QLIK_ASSISTANT_ID || null;
+    }
+
+    async function createClassicChartEmbed(objectId) {
+        const appId = await getQlikAppId();
+        if (!appId || !objectId) return null;
+
+        const embed = document.createElement('qlik-embed');
+        embed.setAttribute('ui', 'classic/chart');
+        embed.setAttribute('app-id', appId);
+        embed.setAttribute('object-id', objectId);
+        embed.setAttribute('language', 'es');
+        return embed;
+    }
+
+    function createFinalCard(content, objectId = "ZxDKp") {
+        console.log("createFinalCard called with objectId:", objectId);
+
+        // Extract the main text (remove any HTML tags)
+        const plainText = content.replace(/<[^>]*>/g, '').trim();
+        console.log("Plain text (first 100 chars):", plainText.slice(0, 100));
+
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'message assistant';
+        
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'bubble';
+        
+        const cardContent = document.createElement('div');
+        cardContent.className = 'assistant-final-card';
+        
+        // Title with checkmark
+        const title = document.createElement('div');
+        title.className = 'assistant-final-card-title';
+        title.textContent = 'Resultado Final';
+        cardContent.appendChild(title);
+        
+        // Content text (preserve markdown formatting)
+        const textDiv = document.createElement('div');
+        textDiv.className = 'assistant-final-card-content';
+        // Convert **text** to <strong>text</strong>
+        textDiv.innerHTML = plainText
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+        cardContent.appendChild(textDiv);
+        
+        // Qlik embed container
+        const embedDiv = document.createElement('div');
+        embedDiv.className = 'assistant-final-card-embed';
+        
+        // Create Qlik embed dynamically
+        getQlikAssistantId().then((assistantId) => {
+            console.log("getQlikAssistantId returned:", assistantId);
+
+            if (!assistantId) {
+                console.error("No assistant ID");
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = 'color: #d32f2f; padding: 12px; font-size: 12px;';
+                errorMsg.textContent = 'No se pudo cargar el gráfico (ID del asistente no configurado)';
+                embedDiv.appendChild(errorMsg);
+                return;
+            }
+
+            console.log("Creating qlik-embed with app-id:", assistantId, "object-id:", objectId);
+
+            const qlikEmbed = document.createElement('qlik-embed');
+            qlikEmbed.setAttribute('ui', 'analytics/snapshot');
+            qlikEmbed.setAttribute('app-id', assistantId);
+            qlikEmbed.setAttribute('object-id', objectId);
+            qlikEmbed.setAttribute('disable-cell-padding', 'true');
+
+            // Add error handler
+            qlikEmbed.addEventListener('error', (e) => {
+                console.error('Qlik embed error:', e);
+                embedDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; font-size: 12px;">Error al cargar el gráfico</div>';
+            });
+
+            embedDiv.appendChild(qlikEmbed);
+            console.log("qlik-embed appended to embedDiv");
+        }).catch(err => {
+            console.error('Error getting assistant ID:', err);
+            const errorMsg = document.createElement('div');
+            errorMsg.style.cssText = 'color: #d32f2f; padding: 12px; font-size: 12px;';
+            errorMsg.textContent = 'Error al obtener ID del asistente';
+            embedDiv.appendChild(errorMsg);
+        });
+
+        cardContent.appendChild(embedDiv);
+        bubbleDiv.appendChild(cardContent);
+        cardDiv.appendChild(bubbleDiv);
+        
+        console.log("Final card DOM structure created");
+        return cardDiv;
+    }
 
     function appendInfoMessage(title, message, linkUrl) {
         const messageDiv = document.createElement("div");
@@ -94,9 +199,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Stateful processor that accumulates text fragments and joins content inside tag pairs
-    function processTextChunk(ui, chunk) {
+    function processTextChunk(ui, chunk, mainUi = null) {
+        // mainUi is used when processing panel content so we can store final tags in the main bubble
+        const storageUi = mainUi || ui;
+
         ui._textBuffer = ui._textBuffer || "";
         ui._textBuffer += chunk;
+        storageUi._finalTags = storageUi._finalTags || [];  // Store all <final> tags in main UI
 
         const pairRegex = /<([a-zA-Z0-9_-]+)[^>]*>([\s\S]*?)<\/\1>/g;
         let match;
@@ -106,6 +215,50 @@ document.addEventListener("DOMContentLoaded", () => {
             const full = match[0];
             const tag = match[1];
             let inner = match[2] || "";
+
+            // if this is a final tag, store it in main UI and show visual block
+            if (tag.toLowerCase() === 'final') {
+                storageUi._finalTags.push({ content: inner, timestamp: Date.now() });
+                console.log("Stored final tag. Total final tags:", storageUi._finalTags.length);
+
+                // Still render visual block for the <final> tag so user can see something is happening
+                const block = document.createElement('div');
+                block.className = 'assistant-final-block';
+
+                const open = document.createElement('span');
+                open.className = 'assistant-tag-marker';
+                open.textContent = `<${tag}>`;
+                block.appendChild(open);
+
+                const p = document.createElement('p');
+                p.className = 'assistant-text-block';
+                p.textContent = ' ' + inner.replace(/<[^>]*>/g, '').slice(0, 100) + '... ';
+                block.appendChild(p);
+
+                const close = document.createElement('span');
+                close.className = 'assistant-tag-marker';
+                close.textContent = `</${tag}>`;
+                block.appendChild(close);
+
+                ui.content.appendChild(block);
+
+                // Mark agent as done
+                try {
+                    const agent = ui._currentAgent;
+                    if (agent && ui._agentPanels && ui._agentPanels[agent]) {
+                        const panel = ui._agentPanels[agent];
+                        if (panel.spinner) panel.spinner.style.display = 'none';
+                        if (panel.check) panel.check.style.display = 'inline-block';
+                        if (panel.wrap) panel.wrap.classList.add('assistant-agent-done');
+                    }
+                } catch (e) {}
+                ui._currentAgent = null;
+
+                // Remove processed part and reset regex
+                ui._textBuffer = ui._textBuffer.replace(full, '');
+                pairRegex.lastIndex = 0;
+                continue;
+            }
 
             // Extract <cite> blocks and replace with placeholders so collapsing whitespace won't break them
             const cites = [];
@@ -130,8 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
             safe = safe.replace(/&lt;(\/)?cite([^&]*)&gt;/gi, (m, p1, p2) => `<${p1 || ''}cite${p2 || ''}>`);
 
             const block = document.createElement('div');
-            // final tag gets special highlight
-            block.className = tag.toLowerCase() === 'final' ? 'assistant-final-block' : 'assistant-tag-block';
+            block.className = 'assistant-tag-block';
 
             const open = document.createElement('span');
             open.className = 'assistant-tag-marker';
@@ -153,20 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
             // Remove processed part and reset regex
             ui._textBuffer = ui._textBuffer.replace(full, '');
             pairRegex.lastIndex = 0;
-
-            // if this was a final tag, mark current agent as done and clear routing so final shows normally
-            if (tag.toLowerCase() === 'final') {
-                try {
-                    const agent = ui._currentAgent;
-                    if (agent && ui._agentPanels && ui._agentPanels[agent]) {
-                        const panel = ui._agentPanels[agent];
-                        if (panel.spinner) panel.spinner.style.display = 'none';
-                        if (panel.check) panel.check.style.display = 'inline-block';
-                        if (panel.wrap) panel.wrap.classList.add('assistant-agent-done');
-                    }
-                } catch (e) {}
-                ui._currentAgent = null;
-            }
         }
 
         // If no tag pairs found and buffer has no tag start or is too long, flush as plain text
@@ -176,6 +314,72 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (flush) appendTextBlock(ui.content, flush);
                 ui._textBuffer = '';
             }
+        }
+    }
+
+    // Process final tags when stream is done: use last one with <chart>, or last one if none have charts
+    function renderFinalTag(ui) {
+        console.log("renderFinalTag called. _finalTags:", ui._finalTags?.length || 0);
+
+        if (!ui._finalTags || ui._finalTags.length === 0) {
+            console.log("No final tags to process");
+            return;
+        }
+
+        // Find the last tag that contains <chart>, or fall back to the last tag
+        let finalContent = ui._finalTags[ui._finalTags.length - 1]?.content || "";
+        let selectedTagIndex = ui._finalTags.length - 1;
+
+        for (let i = ui._finalTags.length - 1; i >= 0; i--) {
+            if (ui._finalTags[i].content.includes('<chart')) {
+                finalContent = ui._finalTags[i].content;
+                selectedTagIndex = i;
+                console.log("Found final tag with <chart> at index:", i);
+                break;
+            }
+        }
+
+        console.log("Selected final tag content (first 200 chars):", finalContent.slice(0, 200));
+
+        if (!finalContent?.trim()) {
+            console.log("Final content is empty");
+            return;
+        }
+
+        try {
+            // Extract object ID from <chart object-id="..."> if present
+            let objectId = 'ZxDKp'; // default
+            const chartMatch = finalContent.match(/<chart[^>]*object-id=["']([^"']+)["']/i);
+            if (chartMatch) {
+                objectId = chartMatch[1];
+                console.log("Extracted object-id from chart tag:", objectId);
+            } else {
+                // Fallback: look for UUID in content
+                const uuidMatch = finalContent.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+                if (uuidMatch) {
+                    objectId = uuidMatch[0];
+                    console.log("Extracted object-id from UUID pattern:", objectId);
+                }
+            }
+
+            // Extract text content (remove all tags including <chart>)
+            const textContent = finalContent
+                .replace(/<[^>]*>/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            console.log("Text content (first 150 chars):", textContent.slice(0, 150));
+
+            if (textContent) {
+                const finalCard = createFinalCard(textContent, objectId);
+                chatBody.appendChild(finalCard);
+                chatBody.scrollTop = chatBody.scrollHeight;
+                console.log("Final card rendered successfully");
+            } else {
+                console.log("Text content is empty after removing tags");
+            }
+        } catch (e) {
+            console.warn("Error rendering final tag:", e);
         }
     }
 
@@ -332,6 +536,34 @@ document.addEventListener("DOMContentLoaded", () => {
         container.appendChild(block);
     }
 
+    function markAgentDone(uiContext, agentName) {
+        if (!uiContext || !agentName || !uiContext._agentPanels || !uiContext._agentPanels[agentName]) return;
+        const panel = uiContext._agentPanels[agentName];
+        try {
+            if (panel.spinner) panel.spinner.style.display = 'none';
+            if (panel.check) panel.check.style.display = 'inline-block';
+            if (panel.wrap) panel.wrap.classList.add('assistant-agent-done');
+        } catch (e) {}
+    }
+
+    function detectAgentMarker(payload) {
+        const texts = [];
+
+        if (typeof payload === 'string') {
+            texts.push(payload);
+        } else if (payload && typeof payload === 'object') {
+            if (typeof payload.text === 'string') texts.push(payload.text);
+            if (payload.kind === 'raw' && payload.data) {
+                texts.push(...extractTextCandidates(payload.data, []));
+            }
+        }
+
+        const joined = texts.join('\n').trim();
+        if (/Answers Agent\s*Answers Agent/i.test(joined)) return 'Answers Agent';
+        if (/Data Analyst Agent\s*Data Analyst Agent/i.test(joined)) return 'Data Analyst Agent';
+        return null;
+    }
+
     function renderAssistantPayload(ui, payload) {
         if (!payload) return;
 
@@ -342,6 +574,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (payload.kind === "done") {
             ui.status?.remove();
+            // Render the final tag (the last one with <chart>, or the last one overall)
+            renderFinalTag(ui);
+
             // mark any agent panels as finished (hide spinner, show check)
             if (ui._agentPanels) {
                 Object.keys(ui._agentPanels).forEach((name) => {
@@ -410,7 +645,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const toggle = document.createElement('button');
             toggle.className = 'assistant-agent-toggle';
-            toggle.textContent = 'Show';
+            toggle.textContent = 'Mostrar';
 
             header.appendChild(title);
             header.appendChild(statusWrap);
@@ -438,22 +673,18 @@ document.addEventListener("DOMContentLoaded", () => {
         // route payloads to current open agent if set
         ui._currentAgent = ui._currentAgent || null;
 
-        // Detect agent markers in text payloads
-        if (payload.kind === 'text' && payload.text) {
-            const txt = String(payload.text || '').trim();
-            if (/Answers Agent\s*Answers Agent/i.test(txt)) {
-                ui._currentAgent = 'Answers Agent';
-                const panel = createAgentPanel('Answers Agent');
-                // show spinner while agent is writing
-                panel.spinner.style.display = 'inline-block';
-                return;
+        // Detect agent markers from text/raw payloads before routing the content
+        const detectedAgent = detectAgentMarker(payload);
+        if (detectedAgent) {
+            if (ui._currentAgent && ui._currentAgent !== detectedAgent) {
+                markAgentDone(ui, ui._currentAgent);
             }
-            if (/Data Analyst Agent\s*Data Analyst Agent/i.test(txt)) {
-                ui._currentAgent = 'Data Analyst Agent';
-                const panel = createAgentPanel('Data Analyst Agent');
-                panel.spinner.style.display = 'inline-block';
-                return;
-            }
+
+            ui._currentAgent = detectedAgent;
+            const panel = createAgentPanel(detectedAgent);
+            if (panel.spinner) panel.spinner.style.display = 'inline-block';
+            if (panel.check) panel.check.style.display = 'none';
+            return;
         }
 
         // When a final tag arrives, reset currentAgent so final shows normally
@@ -467,8 +698,8 @@ document.addEventListener("DOMContentLoaded", () => {
             // Prefer to feed text fragments through processTextChunk so tags (<plan>, <final>, etc.) are reassembled
             if (payload.kind === 'text' && payload.text) {
                 // Use a lightweight UI-like object for the panel so processTextChunk stores buffer per-panel
-                const panelUi = { content: panel.content, _textBuffer: panel._textBuffer || '' };
-                processTextChunk(panelUi, payload.text);
+                const panelUi = { content: panel.content, _textBuffer: panel._textBuffer || '', _currentAgent: ui._currentAgent, _agentPanels: ui._agentPanels };
+                processTextChunk(panelUi, payload.text, ui);  // Pass ui as mainUi so _finalTags are stored there
                 panel._textBuffer = panelUi._textBuffer || '';
                 return;
             }
@@ -479,8 +710,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const texts = extractTextCandidates(params, []);
                 if (texts.length) {
                     const joined = texts.join('\n');
-                    const panelUi = { content: panel.content, _textBuffer: panel._textBuffer || '' };
-                    processTextChunk(panelUi, joined);
+                    const panelUi = { content: panel.content, _textBuffer: panel._textBuffer || '', _currentAgent: ui._currentAgent, _agentPanels: ui._agentPanels };
+                    processTextChunk(panelUi, joined, ui);  // Pass ui as mainUi so _finalTags are stored there
                     panel._textBuffer = panelUi._textBuffer || '';
                     return;
                 }
@@ -764,4 +995,44 @@ document.addEventListener("DOMContentLoaded", () => {
             sendQuestion();
         }
     });
+
+    // Debug helper: accessible from browser console
+    window.debugQlikEmbed = {
+        testEmbed: async function(objectId = "ZxDKp") {
+            const appId = await getQlikAppId();
+            const assistantId = await getQlikAssistantId();
+            console.log("=== Qlik Embed Debug ===");
+            console.log("App ID:", appId);
+            console.log("Assistant ID:", assistantId);
+            console.log("Object ID:", objectId);
+            
+            if (!assistantId) {
+                console.error("No assistant ID configured");
+                return;
+            }
+            
+            const testDiv = document.createElement('div');
+            testDiv.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 400px; height: 300px; background: white; border: 2px solid red; z-index: 9999; padding: 10px;';
+            
+            const label = document.createElement('div');
+            label.textContent = `Test Embed (assistant: ${assistantId.slice(0, 8)}..., object: ${objectId})`;
+            label.style.cssText = 'font-weight: bold; margin-bottom: 10px; font-size: 12px;';
+            testDiv.appendChild(label);
+            
+            const embed = document.createElement('qlik-embed');
+            embed.setAttribute('ui', 'analytics/snapshot');
+            embed.setAttribute('app-id', assistantId);
+            embed.setAttribute('object-id', objectId);
+            embed.style.cssText = 'width: 100%; height: 100%;';
+            
+            embed.addEventListener('load', () => console.log('Embed loaded successfully'));
+            embed.addEventListener('error', (e) => console.error('Embed error:', e));
+            
+            testDiv.appendChild(embed);
+            document.body.appendChild(testDiv);
+            
+            console.log("Test embed created. Should appear in bottom-right corner.");
+            console.log("Close it with: document.body.removeChild(document.body.lastChild)");
+        }
+    };
 });

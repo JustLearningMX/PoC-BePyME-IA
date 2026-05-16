@@ -338,6 +338,7 @@ app.get("/debug/env", (_req, res) => {
   res.json({
     QLIK_HOST: process.env.QLIK_HOST || null,
     QLIK_ASSISTANT_ID: process.env.QLIK_ASSISTANT_ID || null,
+    QLIK_APP_ID: process.env.QLIK_APP_ID || null,
     CLOUD_ASSISTANT_ID: process.env.CLOUD_ASSISTANT_ID || null,
     QLIK_WEB_INTEGRATION_ID: process.env.QLIK_WEB_INTEGRATION_ID || null,
     QLIK_TOKEN: process.env.QLIK_TOKEN ? maskToken(process.env.QLIK_TOKEN) : null,

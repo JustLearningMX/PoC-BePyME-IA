@@ -21,6 +21,7 @@ Copy-Item .env.example .env
 Variables clave:
 - `QLIK_HOST`
 - `QLIK_ASSISTANT_ID`
+- `QLIK_APP_ID`
 - `CLOUD_ASSISTANT_ID`
 - `QLIK_WEB_INTEGRATION_ID`
 - OAuth: `QLIK_OAUTH_CLIENT_ID` (y opcionalmente `QLIK_OAUTH_CLIENT_SECRET`)
