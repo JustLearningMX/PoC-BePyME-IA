@@ -31,92 +31,346 @@ document.addEventListener("DOMContentLoaded", () => {
         return embed;
     }
 
-    function createFinalCard(content, objectId = "ZxDKp", hasChart = false) {
-        console.log("createFinalCard called with objectId:", objectId, "hasChart:", hasChart);
+    function parseTextWithCitations(text) {
+        if (!text) return "";
+        // Replace citations like <citation data-index="0">1</citation> with elegant clickables
+        let processed = text.replace(/<citation data-index=(["']?)(\d+)\1>([\s\S]*?)<\/citation>/gi, (match, quote, index, content) => {
+            return `<sup class="citation-sup"><a href="#" class="citation-link" data-index="${index}">${content}</a></sup>`;
+        });
+        // Replace Markdown double asterisks **text**
+        processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        return processed;
+    }
 
-        // Extract the main text (remove any HTML tags)
-        const plainText = content.replace(/<[^>]*>/g, '').trim();
-        console.log("Plain text (first 100 chars):", plainText.slice(0, 100));
+    function AdaptiveCardRenderer(card) {
+        const container = document.createElement('div');
+        container.className = 'adaptive-card-container';
+        
+        let detailsSection = null;
+        const renderedElements = [];
 
-        const cardDiv = document.createElement('div');
-        cardDiv.className = 'message assistant';
-        
-        const bubbleDiv = document.createElement('div');
-        bubbleDiv.className = 'bubble';
-        
-        const cardContent = document.createElement('div');
-        cardContent.className = 'assistant-final-card';
-        
-        // Title with checkmark
-        const title = document.createElement('div');
-        title.className = 'assistant-final-card-title';
-        title.textContent = hasChart ? 'Conclusión con Análisis' : 'Resultado Final';
-        cardContent.appendChild(title);
-        
-        // Content text (preserve markdown formatting)
-        const textDiv = document.createElement('div');
-        textDiv.className = 'assistant-final-card-content';
-        // Convert **text** to <strong>text</strong>
-        textDiv.innerHTML = plainText
-            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
-        cardContent.appendChild(textDiv);
-        
-        // Only add Qlik embed if there's a chart
-        if (hasChart) {
-            const embedDiv = document.createElement('div');
-            embedDiv.className = 'assistant-final-card-embed';
+        function renderElement(element, index) {
+            if (!element) return null;
 
-            // Create Qlik embed dynamically
-            getQlikAssistantId().then((assistantId) => {
-                console.log("getQlikAssistantId returned:", assistantId);
-
-                if (!assistantId) {
-                    console.error("No assistant ID");
-                    const errorMsg = document.createElement('div');
-                    errorMsg.style.cssText = 'color: #d32f2f; padding: 12px; font-size: 12px;';
-                    errorMsg.textContent = 'No se pudo cargar el gráfico (ID del asistente no configurado)';
-                    embedDiv.appendChild(errorMsg);
-                    return;
+            switch (element.type) {
+                case 'TextBlock': {
+                    const isTitle = element.weight === 'bolder' || element.size === 'medium' || element.size === 'large';
+                    const el = document.createElement(isTitle ? 'h3' : 'p');
+                    el.className = isTitle ? 'adaptive-card-title' : 'adaptive-card-text';
+                    el.innerHTML = parseTextWithCitations(element.text);
+                    return el;
                 }
+                case 'Qlik.Snapshot': {
+                    const snapshot = element.snapshot;
+                    if (!snapshot) return null;
 
-                console.log("Creating qlik-embed with app-id:", assistantId, "object-id:", objectId);
+                    const visType = snapshot.visualization;
+                    if (visType === 'kpi') {
+                        // KPI Visual matching Fase 4 specs
+                        const kpiContainer = document.createElement('div');
+                        kpiContainer.className = 'qlik-kpi-container';
+                        kpiContainer.setAttribute('data-citation-index', String(index));
+                        
+                        const qHyperCube = snapshot.data?.qHyperCube;
+                        const matrix = qHyperCube?.qDataPages?.[0]?.qMatrix;
+                        const cell = matrix?.[0]?.[matrix[0].length - 1] || matrix?.[0]?.[0];
+                        const formattedValue = cell?.qText || String(cell?.qNum || "-");
 
-                const qlikEmbed = document.createElement('qlik-embed');
-                qlikEmbed.setAttribute('ui', 'analytics/snapshot');
-                qlikEmbed.setAttribute('app-id', assistantId);
-                qlikEmbed.setAttribute('object-id', objectId);
-                qlikEmbed.setAttribute('disable-cell-padding', 'true');
+                        const titleEl = document.createElement('div');
+                        titleEl.className = 'qlik-kpi-title';
+                        titleEl.textContent = snapshot.title || qHyperCube?.qMeasureInfo?.[0]?.qFallbackTitle || 'Indicador';
 
-                // Force rendering with explicit style
-                qlikEmbed.style.width = '100%';
-                qlikEmbed.style.minHeight = '300px';
-                qlikEmbed.style.display = 'block';
+                        const valueEl = document.createElement('div');
+                        valueEl.className = 'qlik-kpi-value';
+                        valueEl.textContent = formattedValue;
 
-                // Add error handler
-                qlikEmbed.addEventListener('error', (e) => {
-                    console.error('Qlik embed error:', e);
-                    embedDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; font-size: 12px;">Error al cargar el gráfico. Verifica que el object-id existe.</div>';
-                });
+                        kpiContainer.appendChild(titleEl);
+                        kpiContainer.appendChild(valueEl);
 
-                embedDiv.appendChild(qlikEmbed);
-                console.log("qlik-embed appended to embedDiv");
-            }).catch(err => {
-                console.error('Error getting assistant ID:', err);
-                const errorMsg = document.createElement('div');
-                errorMsg.style.cssText = 'color: #d32f2f; padding: 12px; font-size: 12px;';
-                errorMsg.textContent = 'Error al obtener ID del asistente';
-                embedDiv.appendChild(errorMsg);
-            });
+                        // Add formula/expression as-is if available
+                        const expression = snapshot.object_properties?.qHyperCubeDef?.qMeasures?.[0]?.qDef?.qDef;
+                        if (expression) {
+                            const hr = document.createElement('hr');
+                            hr.style.cssText = 'border: 0; border-top: 1px solid #e2e8f0; margin: 12px 0;';
+                            kpiContainer.appendChild(hr);
 
-            cardContent.appendChild(embedDiv);
+                            const exprLabel = document.createElement('div');
+                            exprLabel.className = 'qlik-kpi-expression';
+                            exprLabel.textContent = expression;
+                            kpiContainer.appendChild(exprLabel);
+                        }
+
+                        return kpiContainer;
+                    } else if (visType === 'bar' || visType === 'pie') {
+                        // Chart.js implementation for standard visualizations
+                        const chartContainer = document.createElement('div');
+                        chartContainer.className = 'qlik-chart-container';
+                        chartContainer.setAttribute('data-citation-index', String(index));
+                        chartContainer.style.cssText = 'margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; height: 250px; position: relative;';
+                        
+                        if (snapshot.title) {
+                            const chartTitle = document.createElement('div');
+                            chartTitle.className = 'qlik-kpi-title';
+                            chartTitle.style.marginBottom = '12px';
+                            chartTitle.textContent = snapshot.title;
+                            chartContainer.appendChild(chartTitle);
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.style.width = '100%';
+                        canvas.style.height = '100%';
+                        chartContainer.appendChild(canvas);
+
+                        const qHyperCube = snapshot.data?.qHyperCube;
+                        const matrix = qHyperCube?.qDataPages?.[0]?.qMatrix || [];
+                        
+                        const labels = matrix.map(row => row[0]?.qText || String(row[0]?.qNum || ''));
+                        const datasetData = matrix.map(row => row[1] !== undefined ? (row[1].qNum !== undefined ? row[1].qNum : parseFloat(row[1].qText)) : 0);
+                        const datasetLabel = qHyperCube?.qMeasureInfo?.[0]?.qFallbackTitle || 'Métrica';
+
+                        // Initialize Chart.js safely after DOM injection
+                        setTimeout(() => {
+                            try {
+                                new Chart(canvas, {
+                                    type: visType === 'pie' ? 'pie' : 'bar',
+                                    data: {
+                                        labels: labels,
+                                        datasets: [{
+                                            label: datasetLabel,
+                                            data: datasetData,
+                                            backgroundColor: visType === 'pie'
+                                                ? ['#1a7abf', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4']
+                                                : '#1a7abf',
+                                            borderColor: visType === 'pie' ? '#ffffff' : '#1a7abf',
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: {
+                                                display: visType === 'pie',
+                                                position: 'bottom'
+                                            }
+                                        },
+                                        scales: visType === 'pie' ? {} : {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            } catch (e) {
+                                console.error('Error initializing Chart.js:', e);
+                            }
+                        }, 100);
+
+                        return chartContainer;
+                    } else {
+                        console.log('Unknown visualization:', visType);
+                        return null;
+                    }
+                }
+                case 'ActionSet': {
+                    const actionContainer = document.createElement('div');
+                    actionContainer.style.cssText = 'display: flex; justify-content: center; margin: 16px 0;';
+
+                    const viewSourceAction = element.actions?.find(act => act.verb === 'view-source' || act.title?.toLowerCase().includes('source') || act.title?.toLowerCase().includes('origen'));
+                    if (viewSourceAction) {
+                        const btn = document.createElement('button');
+                        btn.className = 'suggested-question-row';
+                        btn.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-width: 160px; padding: 10px 20px; font-weight: bold; background: white; border: 1px solid #1a7abf; color: #1a7abf; border-radius: 9999px; cursor: pointer; transition: all 0.2s ease;';
+                        btn.innerHTML = `📖 ${viewSourceAction.title || 'View source'}`;
+
+                        btn.addEventListener('click', () => {
+                            if (detailsSection) {
+                                const isHidden = detailsSection.style.display === 'none';
+                                detailsSection.style.display = isHidden ? 'block' : 'none';
+                                btn.innerHTML = isHidden ? `📖 Ocultar origen` : `📖 ${viewSourceAction.title || 'View source'}`;
+                            }
+                        });
+
+                        actionContainer.appendChild(btn);
+                    }
+                    return actionContainer;
+                }
+                case 'Container': {
+                    const div = document.createElement('div');
+                    if (element.id === 'detailsSection') {
+                        div.className = 'adaptive-card-details-panel';
+                        div.style.display = 'none';
+                        detailsSection = div;
+                    }
+                    
+                    if (element.items) {
+                        element.items.forEach((item, itemIdx) => {
+                            const childEl = renderElement(item, itemIdx);
+                            if (childEl) div.appendChild(childEl);
+                        });
+                    }
+                    return div;
+                }
+                default:
+                    return null;
+            }
         }
 
-        bubbleDiv.appendChild(cardContent);
-        cardDiv.appendChild(bubbleDiv);
+        if (card?.body) {
+            card.body.forEach((element, idx) => {
+                const domEl = renderElement(element, idx);
+                if (domEl) {
+                    container.appendChild(domEl);
+                    renderedElements.push(domEl);
+                }
+            });
+        }
+
+        container.querySelectorAll('.citation-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const index = link.getAttribute('data-index');
+                const targetEl = container.querySelector(`[data-citation-index="${index}"]`);
+                if (targetEl) {
+                    targetEl.classList.add('highlight-flash');
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        targetEl.classList.remove('highlight-flash');
+                    }, 2000);
+                }
+            });
+        });
+
+        return container;
+    }
+
+    function ConclusionCard(card, chatInput, sendQuestion) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message assistant';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.width = '100%';
+
+        // 1. loading Spinner for the card
+        const cardSpinner = document.createElement('div');
+        cardSpinner.className = 'card-loading-spinner';
+        cardSpinner.style.cssText = 'display: flex; justify-content: center; align-items: center; padding: 40px 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; margin-top: 12px;';
+        cardSpinner.innerHTML = `
+            <div class="fancy-spinner">
+                <div class="dot" style="background-color: #1a7abf;"></div>
+                <div class="dot" style="background-color: #1a7abf;"></div>
+                <div class="dot" style="background-color: #1a7abf;"></div>
+            </div>
+            <span style="margin-left: 12px; font-size: 14px; color: #1a7abf; font-weight: 600;">Cargando conclusión analítica...</span>
+        `;
+        wrapper.appendChild(cardSpinner);
+
+        // 2. Render actual AdaptiveCard (initially hidden)
+        const cardContent = AdaptiveCardRenderer(card);
+        cardContent.style.opacity = '0';
+        cardContent.style.transition = 'opacity 0.4s ease';
+        cardContent.style.display = 'none';
+        wrapper.appendChild(cardContent);
+
+        // Transition from spinner to card
+        setTimeout(() => {
+            cardSpinner.style.transition = 'opacity 0.3s ease';
+            cardSpinner.style.opacity = '0';
+            setTimeout(() => {
+                cardSpinner.remove();
+                cardContent.style.display = 'block';
+                cardContent.offsetHeight; // reflow trigger
+                cardContent.style.opacity = '1';
+            }, 300);
+        }, 850);
+
+        // 3. Suggested questions (followUpActions) rendered outside the card
+        const followUps = card.followUpActions || [];
+        if (followUps.length > 0) {
+            const followUpsContainer = document.createElement('div');
+            followUpsContainer.className = 'assistant-followups-container';
+            followUpsContainer.style.marginTop = '16px';
+            followUpsContainer.style.display = 'flex';
+            followUpsContainer.style.flexDirection = 'column';
+            followUpsContainer.style.gap = '8px';
+
+            followUps.forEach(action => {
+                if (action.text) {
+                    const btn = document.createElement('button');
+                    btn.className = 'suggested-question-row';
+                    
+                    const leftDiv = document.createElement('div');
+                    leftDiv.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+                    
+                    const circle = document.createElement('span');
+                    circle.className = 'suggested-question-circle';
+                    circle.textContent = '🔍';
+                    
+                    const txt = document.createElement('span');
+                    txt.style.cssText = 'font-size: 14px; color: #334155; font-weight: 500;';
+                    txt.textContent = action.text;
+                    
+                    leftDiv.appendChild(circle);
+                    leftDiv.appendChild(txt);
+                    
+                    const rightArrow = document.createElement('span');
+                    rightArrow.style.cssText = 'color: #94a3b8; font-size: 16px; font-weight: bold;';
+                    rightArrow.textContent = '↵';
+                    
+                    btn.appendChild(leftDiv);
+                    btn.appendChild(rightArrow);
+
+                    btn.addEventListener('click', () => {
+                        chatInput.value = action.text;
+                        sendQuestion();
+                    });
+
+                    followUpsContainer.appendChild(btn);
+                }
+            });
+
+            wrapper.appendChild(followUpsContainer);
+        }
+
+        return wrapper;
+    }
+
+    function createFinalCard(content, objectId = "ZxDKp", hasChart = false, kpi = null, card = null) {
+        if (card) {
+            return ConclusionCard(card, chatInput, sendQuestion);
+        }
         
-        console.log("Final card DOM structure created");
-        return cardDiv;
+        const fallbackCard = {
+            body: [
+                { type: "TextBlock", text: "Conclusión", weight: "bolder", size: "medium" },
+                { type: "TextBlock", text: content, wrap: true }
+            ]
+        };
+        
+        if (kpi) {
+            fallbackCard.body.push({
+                type: "Qlik.Snapshot",
+                snapshot: {
+                    visualization: "kpi",
+                    title: kpi.title,
+                    data: {
+                        qHyperCube: {
+                            qDataPages: [{
+                                qMatrix: [[{ qText: kpi.text || String(kpi.value), qNum: kpi.value }]]
+                            }],
+                            qMeasureInfo: [{ qFallbackTitle: kpi.title }]
+                        }
+                    },
+                    object_properties: {
+                        qHyperCubeDef: {
+                            qMeasures: [{ qDef: { qDef: kpi.expression } }]
+                        }
+                    }
+                }
+            });
+        }
+        
+        return ConclusionCard(fallbackCard, chatInput, sendQuestion);
     }
 
     function appendInfoMessage(title, message, linkUrl) {
@@ -506,8 +760,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="assistant-sources-backdrop"></div>
         <div class="assistant-sources-content">
             <button class="assistant-sources-close" aria-label="Cerrar">×</button>
-            <h3>Sources</h3>
-            <div class="assistant-sources-body"><em>Loading...</em></div>
+            <h3>Fuentes</h3>
+            <div class="assistant-sources-body"><em>Cargando...</em></div>
         </div>
     `;
     document.body.appendChild(sourcesModal);
@@ -516,7 +770,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const sourcesBody = sourcesModal.querySelector('.assistant-sources-body');
 
     function openSourcesModal() {
-        sourcesBody.innerHTML = '<em>Loading...</em>';
+        sourcesBody.innerHTML = '<em>Cargando...</em>';
         sourcesModal.classList.add('open');
         fetch(`${backendBaseUrl}/debug/assistant-sources`).then(r => r.json()).then(data => {
             sourcesBody.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
@@ -535,7 +789,7 @@ document.addEventListener("DOMContentLoaded", () => {
         block.className = "assistant-object-block";
 
         const h5 = document.createElement("h5");
-        h5.textContent = "Sources";
+        h5.textContent = "Fuentes";
         block.appendChild(h5);
 
         const ul = document.createElement("ul");
@@ -552,9 +806,31 @@ document.addEventListener("DOMContentLoaded", () => {
         container.appendChild(block);
     }
 
+    function translateAgentName(name) {
+        if (!name) return "";
+        let n = name;
+        if (n.toLowerCase().includes("answers agent")) return "Agente Answers";
+        if (n.toLowerCase().includes("data analyst agent")) return "Agente Data Analyst";
+        return n.replace(/agent/gi, "Agente").trim();
+    }
+
+    function translateAgentStep(step) {
+        if (!step) return "";
+        const lower = step.toLowerCase();
+        if (lower.includes("understanding intent")) return "Entendiendo la intención";
+        if (lower.includes("building expressions")) return "Construyendo expresiones";
+        if (lower.includes("searching fields")) return "Buscando campos";
+        if (lower.includes("generating query")) return "Generando consulta";
+        if (lower.includes("synthesizing answer")) return "Sintetizando respuesta";
+        if (lower.includes("routing request")) return "Ruteando la solicitud";
+        if (lower.includes("fetching data")) return "Obteniendo los datos";
+        if (lower.includes("analyzing results")) return "Analizando los resultados";
+        return step;
+    }
+
     function markAgentDone(uiContext, agentName) {
-        if (!uiContext || !agentName || !uiContext._agentPanels || !uiContext._agentPanels[agentName]) return;
-        const panel = uiContext._agentPanels[agentName];
+        const panel = uiContext._activeAgentPanel || (uiContext._agentPanels && uiContext._agentPanels[agentName]);
+        if (!panel) return;
         try {
             if (panel.spinner) panel.spinner.style.display = 'none';
             if (panel.wrap) panel.wrap.classList.add('assistant-agent-done');
@@ -596,7 +872,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 conclusion: card?.body?.find(b => b.text && !b.type?.includes("Action")),
                 kpi: extractKPI(card),
                 followUps: content?.followUpActions || [],
-                summary: p.summary || ""
+                summary: p.summary || "",
+                card: card
             };
         }
 
@@ -606,18 +883,20 @@ document.addEventListener("DOMContentLoaded", () => {
         // 1. Nuevo agente (a través de steps de un stepper o directo)
         const firstAgent = p.value?.content?.[0]?.card?.body?.[0]?.steps?.[0];
         if (p.op === "add" && firstAgent && firstAgent.displayName) {
+            const nameTrans = translateAgentName(firstAgent.displayName);
             return {
                 type: "NEW_AGENT",
-                name: firstAgent.displayName,
-                title: firstAgent.title || firstAgent.displayName
+                name: nameTrans,
+                title: firstAgent.title || nameTrans
             };
         }
 
         if (p.op === "add" && p.value && p.value.displayName) {
+            const nameTrans = translateAgentName(p.value.displayName);
             return {
                 type: "NEW_AGENT",
-                name: p.value.displayName,
-                title: p.value.title || p.value.displayName
+                name: nameTrans,
+                title: p.value.title || nameTrans
             };
         }
 
@@ -625,7 +904,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (p.value?.isSubtle === true && p.value?.text) {
             return {
                 type: "AGENT_STEP",
-                step: p.value.text
+                step: translateAgentStep(p.value.text)
             };
         }
 
@@ -642,7 +921,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function createAgentPanel(ui, agentName) {
         ui._agentPanels = ui._agentPanels || {};
-        if (ui._agentPanels[agentName]) return ui._agentPanels[agentName];
 
         const panelWrap = document.createElement('div');
         panelWrap.className = 'assistant-agent-panel';
@@ -675,7 +953,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const toggle = document.createElement('button');
         toggle.className = 'assistant-agent-toggle';
-        toggle.innerHTML = 'Show reasoning ▾';
+        toggle.innerHTML = 'Mostrar ▾';
 
         header.appendChild(title);
         header.appendChild(statusWrap);
@@ -688,7 +966,7 @@ document.addEventListener("DOMContentLoaded", () => {
         toggle.addEventListener('click', () => {
             const open = content.style.display === 'block';
             content.style.display = open ? 'none' : 'block';
-            toggle.innerHTML = open ? 'Show reasoning ▾' : 'Hide reasoning ▴';
+            toggle.innerHTML = open ? 'Mostrar ▾' : 'Ocultar ▴';
         });
 
         panelWrap.appendChild(dot);
@@ -696,8 +974,10 @@ document.addEventListener("DOMContentLoaded", () => {
         panelWrap.appendChild(content);
         ui.content.appendChild(panelWrap);
 
-        ui._agentPanels[agentName] = { wrap: panelWrap, header, content, spinner, check, toggle };
-        return ui._agentPanels[agentName];
+        const panelObj = { wrap: panelWrap, header, content, spinner, check, toggle };
+        ui._agentPanels[agentName] = panelObj;
+        ui._activeAgentPanel = panelObj;
+        return panelObj;
     }
 
     async function sendQuestion() {
@@ -823,36 +1103,22 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
 
                         // Renderizar conclusión final
-                        if (action.conclusion?.text) {
+                        if (action.card) {
+                            const finalCard = createFinalCard(null, null, false, null, action.card);
+                            chatBody.appendChild(finalCard);
+                        } else if (action.conclusion?.text) {
                             const hasChart = !!action.kpi;
                             const objectId = action.kpi?.objectId || "ZxDKp";
-                            const finalCard = createFinalCard(action.conclusion.text, objectId, hasChart);
-                            
-                            if (action.kpi) {
-                                console.log("Inyectando KPI a conclusión:", action.kpi);
-                                const kpiVal = action.kpi.text || String(action.kpi.value);
-                                const kpiTitle = action.kpi.title || "Indicador";
-                                const kpiHtml = `
-                                    <div class="kpi-display-container" style="text-align: center; margin: 15px 0; padding: 10px; border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 8px; background: #fff;">
-                                        <div style="font-size: 13px; color: #718096; text-transform: uppercase; font-weight: bold;">${kpiTitle}</div>
-                                        <div style="font-size: 2.2rem; font-weight: 800; color: #4caf50; margin: 5px 0;">${kpiVal}</div>
-                                    </div>
-                                `;
-                                const contentEl = finalCard.querySelector(".assistant-final-card-content");
-                                if (contentEl) {
-                                    contentEl.innerHTML = kpiHtml + contentEl.innerHTML;
-                                }
-                            }
-
-                            assistantUI.content.appendChild(finalCard);
+                            const finalCard = createFinalCard(action.conclusion.text, objectId, hasChart, action.kpi, null);
+                            chatBody.appendChild(finalCard);
                         } else if (action.summary) {
                             // Si no hay conclusión formal pero hay summary
-                            const finalCard = createFinalCard(action.summary, "ZxDKp", false);
-                            assistantUI.content.appendChild(finalCard);
+                            const finalCard = createFinalCard(action.summary, "ZxDKp", false, null, null);
+                            chatBody.appendChild(finalCard);
                         }
 
-                        // Renderizar preguntas sugeridas (Follow-Ups)
-                        if (action.followUps && action.followUps.length) {
+                        // Renderizar preguntas sugeridas (Follow-Ups) only if action.card is not present
+                        if (!action.card && action.followUps && action.followUps.length) {
                             const followUpsContainer = document.createElement("div");
                             followUpsContainer.className = "assistant-followups-container";
                             followUpsContainer.style.marginTop = "12px";
@@ -875,7 +1141,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     followUpsContainer.appendChild(btn);
                                 }
                             });
-                            assistantUI.content.appendChild(followUpsContainer);
+                            chatBody.appendChild(followUpsContainer);
                         }
 
                         evtSource.close();

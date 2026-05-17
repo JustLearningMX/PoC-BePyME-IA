@@ -60,12 +60,14 @@ app.post("/api/threads", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${QLIK_TOKEN}`
+        "Authorization": `Bearer ${QLIK_TOKEN}`,
+        "Accept-Language": "es"
       },
       body: JSON.stringify(body)
     });
 
     const data = await response.json();
+    console.log("Data: ", data);
 
     if (!response.ok) {
       return res.status(response.status).json({ error: "Error al crear el thread en Qlik", details: data });
@@ -112,7 +114,8 @@ app.all("/api/stream", async (req, res) => {
       headers: {
         "Accept": "text/event-stream",
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${QLIK_TOKEN}`
+        "Authorization": `Bearer ${QLIK_TOKEN}`,
+        "Accept-Language": "es"
       },
       body: JSON.stringify(requestBody)
     });
@@ -129,7 +132,7 @@ app.all("/api/stream", async (req, res) => {
       const errorData = await streamResponse.text();
       let parsedError = errorData;
       try { parsedError = JSON.parse(errorData); } catch (e) { /* ignore */ }
-      
+
       console.error("Error desde Qlik Stream:", parsedError);
       res.write(`data: ${JSON.stringify({ kind: "error", error: "El stream de Qlik falló", details: parsedError })}\n\n`);
       res.write(`data: ${JSON.stringify({ kind: "done" })}\n\n`);
@@ -160,7 +163,7 @@ app.get("/stream-answers", async (req, res) => {
   // Redirigimos el comportamiento al nuevo endpoint pasando los parámetros de query.
   // Es importante tener 'threadId' en el query, de otra forma fallará.
   req.url = "/api/stream";
-  app._router.handle(req, res, () => {});
+  app._router.handle(req, res, () => { });
 });
 
 const port = Number(process.env.PORT || 3001);

@@ -393,6 +393,100 @@ Usuario hace clic en pregunta sugerida
 Repetir flujo con nueva pregunta (nuevo thread cada vez)
 ```
 
+Agrega soporte completo para Adaptive Cards usando los datos que ya vienen 
+en el stream de Qlik, específicamente en el evento final `method: "message"`.
+
+## Lo que trae el stream
+
+El evento final tiene esta estructura en `params.content[0].card`:
+
+```json
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.3",
+  "body": [
+    { "type": "TextBlock", "text": "Conclusion", "weight": "bolder", "size": "medium" },
+    { "type": "TextBlock", "text": "Tienes **1,860 clientes**...", "wrap": true },
+    { 
+      "type": "Qlik.Snapshot",   <-- KPI/chart con datos reales
+      "snapshot": {
+        "data": { "qHyperCube": { "qDataPages": [...], "qMeasureInfo": [...] } },
+        "title": "Total de Clientes",
+        "visualization": "kpi",
+        "object_properties": {
+          "qHyperCubeDef": {
+            "qMeasures": [{ "qDef": { "qDef": "Count(distinct [ID_CLIENTE])" } }]
+          }
+        }
+      }
+    },
+    { "type": "TextBlock", "text": "El sistema muestra..." },
+    { "type": "ActionSet", "actions": [{ "type": "Action.Submit", "title": "View source" }] }
+  ],
+  "citations": [...],
+  "followUpActions": [
+    { "text": "¿Cuántos clientes han sido visitados...?", "type": "question" }
+  ]
+}
+```
+
+## Lo que necesito
+
+1. **Renderer de Adaptive Cards propio** — NO uses la librería oficial 
+   `adaptivecards` de Microsoft porque no soporta los tipos custom de Qlik 
+   (`Qlik.Snapshot`, `Qlik.Stepper`). Construye un renderer custom en React 
+   que maneje estos elementos:
+
+   | Tipo en el JSON | Cómo renderizarlo |
+   |----------------|-------------------|
+   | `TextBlock` con `weight: "bolder"` | Título de sección (h3) |
+   | `TextBlock` normal con `wrap: true` | Párrafo con markdown (usa `marked`) |
+   | `Qlik.Snapshot` con `visualization: "kpi"` | KPI grande: número + título + expresión |
+   | `Qlik.Snapshot` con `visualization: "bar"` / `"pie"` | Chart.js con los datos de `qHyperCube` |
+   | `ActionSet` con `verb: "view-source"` | Botón "View source" que expande los detalles del snapshot |
+   | `Container` con `id: "detailsSection"` | Panel colapsable (oculto por default) |
+
+2. **Extracción de datos del qHyperCube** para alimentar Chart.js:
+   - `qDimensionInfo` → labels del eje X
+   - `qMeasureInfo[0].qFallbackTitle` → label del dataset
+   - `qDataPages[0].qMatrix` → filas de datos, cada celda tiene `qText` y `qNum`
+
+3. **citations** — el card trae `citations` con referencias a charts. El 
+   TextBlock que menciona la cita tiene `<citation data-index="0">1</citation>` 
+   en su texto. Renderizar eso como un superíndice clickeable que resalta el 
+   chart referenciado.
+
+4. **followUpActions** — ya están en el card, úsalos directamente desde ahí 
+   en lugar de buscarlos en otro lado.
+
+5. El componente se llama `<AdaptiveCardRenderer card={card} />` y recibe el 
+   objeto card completo del evento final. Lo usa `ConclusionCard` 
+   internamente.
+
+## Diseño visual esperado
+
+Replicar el diseño de la imagen de referencia (Qlik Answers UI):
+- Card con borde suave, fondo blanco
+- Título "Conclusion" en bold arriba
+- Texto de respuesta con el número en bold
+- KPI centrado con número grande en azul (#1a7abf) y título arriba
+- Línea divisora
+- Botón "View source" centrado con ícono de libro
+- Fuera de la card: preguntas sugeridas como filas con ícono circular 
+  a la izquierda y flecha ↵ a la derecha
+
+## Notas
+
+- El texto de los TextBlock puede tener markdown (`**bold**`) — parsearlo.
+- El valor del KPI está en `qDataPages[0].qMatrix[0][0].qNum` y formateado 
+  en `qText` (puede ser "1860" o "1.27k" según el formato del app de Qlik).
+- Usar el `qText` formateado que ya viene, no reformatear el número.
+- Si `visualization` no es "kpi" ni un tipo conocido, ignorar ese elemento 
+  y loguearlo en consola.
+- El campo `reasoning` del card es para el AgentTimeline, no para 
+  ConclusionCard — ignorarlo aquí.
+
 ### Archivos a crear
 
 ```
