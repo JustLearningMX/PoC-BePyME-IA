@@ -74,6 +74,69 @@ document.addEventListener("DOMContentLoaded", () => {
         let detailsSection = null;
         const renderedElements = [];
 
+        // Helper to create the collapsible metadata details panel below KPI/chart snapshots
+        function createSourceMetadataPanel(snapshot) {
+            const source = snapshot?.source;
+            if (!source) return null;
+
+            const panel = document.createElement('div');
+            panel.className = 'source-metadata-panel hidden';
+            panel.style.cssText = 'margin: 12px 0; padding: 16px; background: #f5f5f7; border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 16px; text-align: left; display: none;';
+
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); padding-bottom: 8px;';
+            
+            const title = document.createElement('strong');
+            title.style.cssText = 'font-size: 13px; color: #1d1d1f; font-weight: 600;';
+            title.textContent = 'Origen de datos (Source)';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.style.cssText = 'background: none; border: 0; font-size: 16px; color: #86868b; cursor: pointer; padding: 0 4px; line-height: 1;';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                panel.style.display = 'none';
+                panel.classList.add('hidden');
+            });
+
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+            panel.appendChild(header);
+
+            const body = document.createElement('div');
+            body.style.cssText = 'display: flex; flex-direction: column; gap: 10px; font-size: 12px; color: #515154;';
+
+            if (source.appId) {
+                const field = document.createElement('div');
+                field.innerHTML = `<div style="font-weight: 600; color: #1d1d1f; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;">App ID</div><div style="font-family: monospace; background: rgba(0,0,0,0.03); padding: 6px; border-radius: 6px; word-break: break-all; font-size: 11px;">${source.appId}</div>`;
+                body.appendChild(field);
+            }
+
+            const measure = source.measures?.[0];
+            if (measure) {
+                if (measure.label) {
+                    const field = document.createElement('div');
+                    field.innerHTML = `<div style="font-weight: 600; color: #1d1d1f; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;">Métrica</div><div style="font-size: 12px;">${measure.label}</div>`;
+                    body.appendChild(field);
+                }
+                if (measure.expression) {
+                    const field = document.createElement('div');
+                    field.innerHTML = `<div style="font-weight: 600; color: #1d1d1f; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;">Expresión</div><div style="font-family: monospace; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 8px; word-break: break-all; white-space: pre-wrap; font-size: 11px; color: #0066cc;">${measure.expression}</div>`;
+                    body.appendChild(field);
+                }
+            }
+
+            if (source.reason) {
+                const field = document.createElement('div');
+                field.innerHTML = `<div style="font-weight: 600; color: #1d1d1f; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;">Contexto</div><div style="line-height: 1.4; font-size: 12px;">${source.reason}</div>`;
+                body.appendChild(field);
+            }
+
+            panel.appendChild(body);
+            return panel;
+        }
+
         function renderElement(element, index) {
             if (!element) return null;
 
@@ -82,6 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const isTitle = element.weight === 'bolder' || element.size === 'medium' || element.size === 'large';
                     const el = document.createElement(isTitle ? 'h3' : 'p');
                     el.className = isTitle ? 'adaptive-card-title' : 'adaptive-card-text';
+                    el.setAttribute('data-body-index', String(index));
                     el.innerHTML = parseTextWithCitations(element.text);
                     return el;
                 }
@@ -90,8 +154,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (!snapshot) return null;
 
                     const visType = snapshot.visualization;
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'qlik-snapshot-wrapper';
+                    wrapper.setAttribute('data-body-index', String(index));
+                    wrapper.style.position = 'relative';
+
+                    let snapshotContent = null;
+
                     if (visType === 'kpi') {
-                        // KPI Visual matching Fase 4 specs
+                        // KPI Visual matching specs
                         const kpiContainer = document.createElement('div');
                         kpiContainer.className = 'qlik-kpi-container';
                         kpiContainer.setAttribute('data-citation-index', String(index));
@@ -112,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         kpiContainer.appendChild(titleEl);
                         kpiContainer.appendChild(valueEl);
 
-                        // Add formula/expression as-is if available
+                        // Add formula/expression if available
                         const expression = snapshot.object_properties?.qHyperCubeDef?.qMeasures?.[0]?.qDef?.qDef;
                         if (expression) {
                             const hr = document.createElement('hr');
@@ -125,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             kpiContainer.appendChild(exprLabel);
                         }
 
-                        return kpiContainer;
+                        snapshotContent = kpiContainer;
                     } else if (visType === 'bar' || visType === 'pie') {
                         // Chart.js implementation for standard visualizations
                         const chartContainer = document.createElement('div');
@@ -191,21 +263,112 @@ document.addEventListener("DOMContentLoaded", () => {
                             }
                         }, 100);
 
-                        return chartContainer;
-                    } else {
-                        console.log('Unknown visualization:', visType);
-                        return null;
+                        snapshotContent = chartContainer;
                     }
+
+                    if (snapshotContent) {
+                        wrapper.appendChild(snapshotContent);
+
+                        // If snapshot has source, add the Collapsible Source Panel
+                        if (snapshot.source) {
+                            const metadataPanel = createSourceMetadataPanel(snapshot);
+                            if (metadataPanel) {
+                                wrapper.appendChild(metadataPanel);
+                            }
+                        }
+                        return wrapper;
+                    }
+                    return null;
                 }
                 case 'ActionSet': {
-                    // Ignorar el ActionSet (botón de toggle) ya que la fuente se muestra directamente
-                    return null;
+                    const actionContainer = document.createElement('div');
+                    actionContainer.className = 'adaptive-card-actionset';
+                    actionContainer.setAttribute('data-body-index', String(index));
+                    actionContainer.style.cssText = 'display: flex; gap: 8px; margin-top: 12px;';
+
+                    if (element.actions) {
+                        element.actions.forEach(action => {
+                            if (action.title === 'View source' || action.verb === 'view-source') {
+                                const btn = document.createElement('button');
+                                btn.className = 'view-source-btn';
+                                btn.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 12px; font-size: 12.5px; font-weight: 500; color: #eb192d; cursor: pointer; transition: all 0.2s ease;';
+
+                                // Premium Book SVG Icon
+                                btn.innerHTML = `
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                    </svg>
+                                    <span>${action.title || 'View source'}</span>
+                                `;
+
+                                // Hover states
+                                btn.addEventListener('mouseenter', () => {
+                                    btn.style.background = 'rgba(235, 25, 45, 0.04)';
+                                    btn.style.borderColor = 'rgba(235, 25, 45, 0.15)';
+                                    btn.style.transform = 'translateY(-1px)';
+                                });
+                                btn.addEventListener('mouseleave', () => {
+                                    btn.style.background = '#ffffff';
+                                    btn.style.borderColor = 'rgba(0, 0, 0, 0.08)';
+                                    btn.style.transform = 'none';
+                                });
+
+                                // Retrieve configuration and build dynamic Qlik url
+                                qlikConfigPromise.then(cfg => {
+                                    const snapshotEl = card?.body?.find(el => el.type === 'Qlik.Snapshot');
+                                    const snapshot = snapshotEl?.snapshot;
+                                    const appId = snapshot?.source?.appId;
+                                    const objectId = snapshot?.data?.qInfo?.qId;
+                                    const tenant = cfg.QLIK_HOST || "https://dataiq-mexico.us.qlikcloud.com";
+
+                                    if (appId) {
+                                        let qlikUrl = "";
+                                        if (objectId) {
+                                            qlikUrl = `${tenant.replace(/\/$/, "")}/sense/app/${appId}/object/${objectId}`;
+                                        } else {
+                                            qlikUrl = `${tenant.replace(/\/$/, "")}/sense/app/${appId}`;
+                                        }
+                                        
+                                        // Tooltip on Hover
+                                        btn.setAttribute('title', `Abrir en Qlik Cloud:\n${qlikUrl}`);
+
+                                        // Click event: Opens app in new tab AND Toggles local panel metadata
+                                        btn.addEventListener('click', (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            
+                                            // 1. Open Qlik in new tab
+                                            window.open(qlikUrl, '_blank');
+
+                                            // 2. Toggle the local source-metadata-panel
+                                            const panels = container.querySelectorAll('.source-metadata-panel');
+                                            panels.forEach(p => {
+                                                if (p.classList.contains('hidden')) {
+                                                    p.classList.remove('hidden');
+                                                    p.style.display = 'block';
+                                                    p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                                } else {
+                                                    p.classList.add('hidden');
+                                                    p.style.display = 'none';
+                                                }
+                                            });
+                                        });
+                                    }
+                                });
+
+                                actionContainer.appendChild(btn);
+                            }
+                        });
+                    }
+                    return actionContainer;
                 }
                 case 'Container': {
                     const div = document.createElement('div');
+                    div.setAttribute('data-body-index', String(index));
                     if (element.id === 'detailsSection') {
                         div.className = 'adaptive-card-details-panel';
-                        div.style.display = 'block'; // Mostrar la fuente de los datos directamente
+                        div.style.display = 'block'; // Show source details panel
                         detailsSection = div;
                     }
 
@@ -232,17 +395,28 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
+        // Citation linking, resolution and scroll-highlight logic
         container.querySelectorAll('.citation-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const index = link.getAttribute('data-index');
-                const targetEl = container.querySelector(`[data-citation-index="${index}"]`);
-                if (targetEl) {
-                    targetEl.classList.add('highlight-flash');
-                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    setTimeout(() => {
-                        targetEl.classList.remove('highlight-flash');
-                    }, 2000);
+                e.stopPropagation();
+                const citationIndex = parseInt(link.getAttribute('data-index'), 10);
+                const citation = card?.citations?.[citationIndex];
+                const chartPath = citation?.sources?.[0]?.chart;
+                
+                if (chartPath) {
+                    // Extract the final index (e.g. "/card/body/2" -> 2)
+                    const bodyIndex = parseInt(chartPath.split('/').pop(), 10);
+                    if (!isNaN(bodyIndex)) {
+                        const targetEl = container.querySelector(`[data-body-index="${bodyIndex}"]`);
+                        if (targetEl) {
+                            targetEl.classList.add('highlight-flash');
+                            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            setTimeout(() => {
+                                targetEl.classList.remove('highlight-flash');
+                            }, 2000);
+                        }
+                    }
                 }
             });
         });

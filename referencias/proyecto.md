@@ -464,6 +464,87 @@ El evento final tiene esta estructura en `params.content[0].card`:
    objeto card completo del evento final. Lo usa `ConclusionCard` 
    internamente.
 
+## View source y Citations
+
+### Botón "View source"
+El ActionSet con verb "view-source" debe mostrar/ocultar un panel 
+debajo del KPI con estos datos del snapshot.source:
+┌─────────────────────────────────────┐
+│ Source                          ✕   │
+│                                     │
+│ App ID                              │
+│ 0965781c-cbc1-40ee-937f-...         │
+│                                     │
+│ Expresión                           │
+│ Count(distinct [ID_CLIENTE])        │
+│                                     │
+│ Proporciona una métrica clave del   │
+│ tamaño de la base de clientes       │
+└─────────────────────────────────────┘
+
+Datos a mostrar:
+- `snapshot.source.appId`
+- `snapshot.source.measures[].expression` (en monospace)
+- `snapshot.source.measures[].label`  
+- `snapshot.source.reason`
+
+Estado: toggle local con useState, oculto por default.
+
+### Superíndice citation (el "1")
+
+1. Al renderizar un TextBlock, buscar tags `<citation data-index="N">` 
+   en el texto y reemplazarlos con un `<sup>` clickeable.
+
+2. Al hacer clic, usar el índice N para buscar en `card.citations[N].sources[0].chart`
+   que es un path tipo "/card/body/2" — el número final es el índice del 
+   elemento en card.body que se debe resaltar.
+
+3. Resaltar ese elemento: agregar un ref al Qlik.Snapshot correspondiente 
+   y al hacer clic en el superíndice hacer scroll a él + aplicar un 
+   highlight temporal (border azul por 2 segundos con transition).
+
+Implementación sugerida:
+- `const snapshotRefs = useRef({})` — un ref por cada índice de body
+- En el superíndice: `onClick={() => highlightSource(citationIndex)}`
+- `highlightSource(n)` resuelve el path, hace scroll y aplica clase CSS
+
+## Botón "View source" — link a Qlik
+
+En lugar de (o además de) mostrar el panel con los datos del source,
+el botón "View source" debe abrir la app de Qlik en una nueva pestaña.
+
+Los datos para construir la URL vienen del snapshot:
+
+- TENANT: variable de entorno `VITE_QLIK_TENANT` 
+  (ej: "https://dataiq-mexico.us.qlikcloud.com")
+- APP_ID: `snapshot.source.appId`
+  (ej: "0965781c-cbc1-40ee-937f-8431b662d86e")
+- OBJECT_ID: `snapshot.data.qInfo.qId`
+  (ej: "e9afb5b6-1949-432d-8aad-b680f2401485")
+
+Construir la URL así:
+```javascript
+const qlikUrl = `${TENANT}/sense/app/${appId}/object/${objectId}`;
+window.open(qlikUrl, "_blank");
+```
+
+Esto abre directo el objeto (KPI/chart) dentro de la app de Qlik.
+
+Si el usuario no tiene sesión activa en Qlik, lo redirigirá al login 
+automáticamente y después al objeto — ese comportamiento es correcto,
+no hay que manejarlo.
+
+Si `objectId` no está disponible, fallback a solo la app:
+```javascript
+const qlikUrl = `${TENANT}/sense/app/${appId}`;
+```
+
+El botón debe verse así:
+- Ícono de libro o enlace externo
+- Texto "View source" 
+- Al hacer clic: abrir nueva pestaña con la URL de Qlik
+- Tooltip: mostrar la URL al hacer hover
+
 ## Diseño visual esperado
 
 Replicar el diseño de la imagen de referencia (Qlik Answers UI):

@@ -696,16 +696,16 @@ body {
     cursor: zoom-in;
 }
 
-/* Animations & Highlight Effects */
 .highlight-flash {
-    animation: highlight-pulse 2.5s cubic-bezier(0.25, 1, 0.5, 1);
-    border: 1px solid #1d1d1f !important;
+    animation: highlight-blue-pulse 2s cubic-bezier(0.25, 1, 0.5, 1) both;
+    border-color: #0066cc !important;
+    transition: all 0.2s ease;
 }
 
-@keyframes highlight-pulse {
-    0% { box-shadow: 0 0 0 0px rgba(29, 29, 31, 0.3); background-color: rgba(29, 29, 31, 0.05); }
-    50% { box-shadow: 0 0 0 6px rgba(29, 29, 31, 0.15); background-color: rgba(29, 29, 31, 0.1); }
-    100% { box-shadow: 0 0 0 0px rgba(29, 29, 31, 0); background-color: transparent; }
+@keyframes highlight-blue-pulse {
+    0% { box-shadow: 0 0 0 0px rgba(0, 102, 204, 0.5); border-color: #0066cc; }
+    50% { box-shadow: 0 0 0 8px rgba(0, 102, 204, 0.25); border-color: #0066cc; }
+    100% { box-shadow: 0 0 0 0px rgba(0, 102, 204, 0); border-color: rgba(0, 0, 0, 0.08); }
 }
 
 /* Qlik Embed specific integration overrides */
