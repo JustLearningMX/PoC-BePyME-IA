@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agente de IA</title>
-    <!--    <link rel="stylesheet" href="styles/index.css">-->
+    <title>CRM BePyME Asistente | Qlik AI</title>
     <link rel="stylesheet" href="styles/customAIChat.css">
 
     <!-- This script loads the Qlik Embed Web Components library-->
@@ -17,34 +16,23 @@
 </head>
 
 <body>
-    <h3 style="text-align: center">CRM BePyME Asistente</h3>
+    <header class="app-header">
+        <div class="app-title">CRM BePyME Asistente</div>
+        <div class="app-subtitle">Tu asistente inteligente de análisis de datos</div>
+    </header>
 
-    <section style="
-            display: flex;
-            gap: 25px;
-            width: 100%;
-            padding: 20px;
-            /*box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;*/
-            box-sizing: border-box;
-            align-items: stretch;
-            height: calc(100vh - 80px);
-        ">
-        <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
-            <!--In this example, we will show how to use the Qlik AI Assistant component. -->
-            <!--<div style="
-            box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;
-            min-width: 500px;
-            margin: 0 auto;
-        ">-->
+    <main class="main-section">
+        <!-- Left Embed Panel -->
+        <article class="main-column">
             <div class="chat-container">
                 <qlik-embed ui="ai/agentic-assistant" assistant-id="47461ad6-1685-4ed6-a00a-e0f6224b3b0d"
                     language="es"></qlik-embed>
             </div>
         </article>
 
-        <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
-            <!-- This example shows how to use the Qlik AI Assistant component with a Knowledgebases API and Assistants API to build a custom chat assistant.-->
-            <div class="chat-container" style="min-height: 600px">
+        <!-- Right Custom Assistant Panel -->
+        <article class="main-column">
+            <div class="chat-container">
                 <div class="chat-header">
                     <h4>Tu asistente</h4>
                     <span class="header-span">Pregunta, Qlik responde.</span>
@@ -63,34 +51,8 @@
                 </div>
             </div>
         </article>
-    </section>
+    </main>
 
-    <!--<script type="module">
-    import { createQlikApi  } from "https://cdn.jsdelivr.net/npm/@qlik/api@2/index.js";
-
-    async function createThread(question) {
-        const apiKey = 'eyJhbGciOiJFUzM4NCIsImtpZCI6IjUwMmMxNWU0LTAzYWItNDU0NS1iZDBiLTRiMDg4MjNiYWE5OCIsInR5cCI6IkpXVCJ9.eyJzdWJUeXBlIjoidXNlciIsInRlbmFudElkIjoia0I4R2V5emIzZjRTY2xpSlBzYWdJWHpkZU9yY0NjdHkiLCJqdGkiOiI1MDJjMTVlNC0wM2FiLTQ1NDUtYmQwYi00YjA4ODIzYmFhOTgiLCJhdWQiOiJxbGlrLmFwaSIsImlzcyI6InFsaWsuYXBpL2FwaS1rZXlzIiwic3ViIjoiNjY3OWQ1MmY5OGRmYTQxODU0ZTE2YWNlIn0.Vk8Pqtd-Oy01O0QFz6gQeHTlFceO9WLeNC1ts0OL9lqb_wcpRRoYDC3O2keK_kHS075vX5ukbDBxYqcy363D5BLUOhrt2s43N7iNzg38yedwqLD7HZ0xH6NT7AiJPYxj';
-        const urlTenant = "https://dataiq-mexico.us.qlikcloud.com";
-        const assistantID = '47461ad6-1685-4ed6-a00a-e0f6224b3b0d';
-
-        const qlik = createQlikApi({
-            hostConfig: {
-                host: urlTenant,
-                apiKey: apiKey,
-            },
-        })
-
-        const res = await qlik.assistants.createAssistantThread(
-            assistantID,
-            { name: 'hola' }
-        )
-
-        console.log(res);
-        return res;
-    }
-    createThread("Hola");
-
-</script>-->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="scripts/customAIChat.js"></script>
     <script src="https://dataiq-mexico.us.qlikcloud.com/resources/assets/external/requirejs/require.js"></script>

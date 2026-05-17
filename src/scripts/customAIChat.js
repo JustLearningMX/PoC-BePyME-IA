@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const expression = snapshot.object_properties?.qHyperCubeDef?.qMeasures?.[0]?.qDef?.qDef;
                         if (expression) {
                             const hr = document.createElement('hr');
-                            hr.style.cssText = 'border: 0; border-top: 1px solid #e2e8f0; margin: 12px 0;';
+                            hr.style.cssText = 'border: 0; border-top: 1px solid rgba(0, 0, 0, 0.06); margin: 12px 0;';
                             kpiContainer.appendChild(hr);
 
                             const exprLabel = document.createElement('div');
@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const chartContainer = document.createElement('div');
                         chartContainer.className = 'qlik-chart-container';
                         chartContainer.setAttribute('data-citation-index', String(index));
-                        chartContainer.style.cssText = 'margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; height: 250px; position: relative;';
+                        chartContainer.style.cssText = 'margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 16px; height: 250px; position: relative;';
                         
                         if (snapshot.title) {
                             const chartTitle = document.createElement('div');
@@ -139,9 +139,9 @@ document.addEventListener("DOMContentLoaded", () => {
                                             label: datasetLabel,
                                             data: datasetData,
                                             backgroundColor: visType === 'pie'
-                                                ? ['#1a7abf', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4']
-                                                : '#1a7abf',
-                                            borderColor: visType === 'pie' ? '#ffffff' : '#1a7abf',
+                                                ? ['#1d1d1f', '#313136', '#515156', '#86868b', '#a1a1a6', '#d2d2d7']
+                                                : '#1d1d1f',
+                                            borderColor: visType === 'pie' ? '#ffffff' : '#1d1d1f',
                                             borderWidth: 1
                                         }]
                                     },
@@ -173,36 +173,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
                 case 'ActionSet': {
-                    const actionContainer = document.createElement('div');
-                    actionContainer.style.cssText = 'display: flex; justify-content: center; margin: 16px 0;';
-
-                    const viewSourceAction = element.actions?.find(act => act.verb === 'view-source' || act.title?.toLowerCase().includes('source') || act.title?.toLowerCase().includes('origen'));
-                    if (viewSourceAction) {
-                        const btn = document.createElement('button');
-                        btn.className = 'suggested-question-row';
-                        btn.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-width: 160px; padding: 10px 20px; font-weight: bold; background: white; border: 1px solid #1a7abf; color: #1a7abf; border-radius: 9999px; cursor: pointer; transition: all 0.2s ease;';
-                        btn.innerHTML = `📖 ${viewSourceAction.title || 'View source'}`;
-
-                        btn.addEventListener('click', () => {
-                            if (detailsSection) {
-                                const isHidden = detailsSection.style.display === 'none';
-                                detailsSection.style.display = isHidden ? 'block' : 'none';
-                                btn.innerHTML = isHidden ? `📖 Ocultar origen` : `📖 ${viewSourceAction.title || 'View source'}`;
-                            }
-                        });
-
-                        actionContainer.appendChild(btn);
-                    }
-                    return actionContainer;
+                    // Ignorar completamente el ActionSet de fuentes
+                    return null;
                 }
                 case 'Container': {
-                    const div = document.createElement('div');
                     if (element.id === 'detailsSection') {
-                        div.className = 'adaptive-card-details-panel';
-                        div.style.display = 'none';
-                        detailsSection = div;
+                        // Ignorar completamente el contenedor de fuentes
+                        return null;
                     }
-                    
+                    const div = document.createElement('div');
                     if (element.items) {
                         element.items.forEach((item, itemIdx) => {
                             const childEl = renderElement(item, itemIdx);
@@ -254,14 +233,14 @@ document.addEventListener("DOMContentLoaded", () => {
         // 1. loading Spinner for the card
         const cardSpinner = document.createElement('div');
         cardSpinner.className = 'card-loading-spinner';
-        cardSpinner.style.cssText = 'display: flex; justify-content: center; align-items: center; padding: 40px 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; margin-top: 12px;';
+        cardSpinner.style.cssText = 'display: flex; justify-content: center; align-items: center; padding: 40px 20px; background: white; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 18px; margin-top: 12px;';
         cardSpinner.innerHTML = `
             <div class="fancy-spinner">
-                <div class="dot" style="background-color: #1a7abf;"></div>
-                <div class="dot" style="background-color: #1a7abf;"></div>
-                <div class="dot" style="background-color: #1a7abf;"></div>
+                <div class="dot" style="background-color: #1d1d1f;"></div>
+                <div class="dot" style="background-color: #1d1d1f;"></div>
+                <div class="dot" style="background-color: #1d1d1f;"></div>
             </div>
-            <span style="margin-left: 12px; font-size: 14px; color: #1a7abf; font-weight: 600;">Cargando conclusión analítica...</span>
+            <span class="card-loading-text" style="margin-left: 12px; font-size: 13.5px; color: #86868b; font-weight: 500; font-family: inherit;">Cargando conclusión analítica...</span>
         `;
         wrapper.appendChild(cardSpinner);
 
@@ -304,17 +283,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     const circle = document.createElement('span');
                     circle.className = 'suggested-question-circle';
-                    circle.textContent = '🔍';
+                    circle.textContent = '→';
                     
                     const txt = document.createElement('span');
-                    txt.style.cssText = 'font-size: 14px; color: #334155; font-weight: 500;';
+                    txt.style.cssText = 'font-size: 13.5px; color: #1d1d1f; font-weight: 500; font-family: inherit;';
                     txt.textContent = action.text;
                     
                     leftDiv.appendChild(circle);
                     leftDiv.appendChild(txt);
                     
                     const rightArrow = document.createElement('span');
-                    rightArrow.style.cssText = 'color: #94a3b8; font-size: 16px; font-weight: bold;';
+                    rightArrow.style.cssText = 'color: #86868b; font-size: 14px; font-weight: 500; font-family: inherit;';
                     rightArrow.textContent = '↵';
                     
                     btn.appendChild(leftDiv);
@@ -753,58 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modalBackdrop.addEventListener('click', closeImageModal);
     modalClose.addEventListener('click', closeImageModal);
 
-    // --- Sources modal (one instance) ---
-    const sourcesModal = document.createElement('div');
-    sourcesModal.className = 'assistant-sources-modal';
-    sourcesModal.innerHTML = `
-        <div class="assistant-sources-backdrop"></div>
-        <div class="assistant-sources-content">
-            <button class="assistant-sources-close" aria-label="Cerrar">×</button>
-            <h3>Fuentes</h3>
-            <div class="assistant-sources-body"><em>Cargando...</em></div>
-        </div>
-    `;
-    document.body.appendChild(sourcesModal);
-    const sourcesBackdrop = sourcesModal.querySelector('.assistant-sources-backdrop');
-    const sourcesClose = sourcesModal.querySelector('.assistant-sources-close');
-    const sourcesBody = sourcesModal.querySelector('.assistant-sources-body');
 
-    function openSourcesModal() {
-        sourcesBody.innerHTML = '<em>Cargando...</em>';
-        sourcesModal.classList.add('open');
-        fetch(`${backendBaseUrl}/debug/assistant-sources`).then(r => r.json()).then(data => {
-            sourcesBody.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-        }).catch(err => {
-            sourcesBody.innerHTML = `<div class="error">${String(err)}</div>`;
-        });
-    }
-    function closeSourcesModal(){ sourcesModal.classList.remove('open'); }
-    sourcesBackdrop.addEventListener('click', closeSourcesModal);
-    sourcesClose.addEventListener('click', closeSourcesModal);
-
-    function appendSourcesBlock(container, sources) {
-        if (!sources || !sources.length) return;
-
-        const block = document.createElement("div");
-        block.className = "assistant-object-block";
-
-        const h5 = document.createElement("h5");
-        h5.textContent = "Fuentes";
-        block.appendChild(h5);
-
-        const ul = document.createElement("ul");
-        ul.style.margin = "0";
-        ul.style.paddingLeft = "18px";
-
-        for (const source of sources) {
-            const li = document.createElement("li");
-            li.textContent = typeof source === "string" ? source : JSON.stringify(source);
-            ul.appendChild(li);
-        }
-
-        block.appendChild(ul);
-        container.appendChild(block);
-    }
 
     function translateAgentName(name) {
         if (!name) return "";
@@ -944,7 +872,7 @@ document.addEventListener("DOMContentLoaded", () => {
         spinner.style.width = '14px';
         spinner.style.height = '14px';
         spinner.style.marginLeft = '6px';
-        spinner.style.borderTopColor = '#007aff';
+        spinner.style.borderTopColor = '#1d1d1f';
 
         const check = document.createElement('span');
         check.style.display = 'none';
@@ -1130,10 +1058,16 @@ document.addEventListener("DOMContentLoaded", () => {
                                 if (act.title || act.label) {
                                     const btn = document.createElement("button");
                                     btn.className = "suggested-question-btn";
-                                    btn.style.cssText = "text-align: left; padding: 8px 12px; background: #f0f4f8; border: 1px solid #d2dbe5; border-radius: 8px; cursor: pointer; font-size: 13px; color: #2b6cb0; transition: background 0.2s;";
+                                    btn.style.cssText = "text-align: left; padding: 10px 16px; background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 999px; cursor: pointer; font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: inherit; transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);";
                                     btn.textContent = act.title || act.label;
-                                    btn.addEventListener("mouseenter", () => btn.style.background = "#e2e8f0");
-                                    btn.addEventListener("mouseleave", () => btn.style.background = "#f0f4f8");
+                                    btn.addEventListener("mouseenter", () => {
+                                        btn.style.background = "#f5f5f7";
+                                        btn.style.borderColor = "rgba(0, 0, 0, 0.15)";
+                                    });
+                                    btn.addEventListener("mouseleave", () => {
+                                        btn.style.background = "#ffffff";
+                                        btn.style.borderColor = "rgba(0, 0, 0, 0.08)";
+                                    });
                                     btn.addEventListener("click", () => {
                                         chatInput.value = btn.textContent;
                                         sendQuestion();
