@@ -149,23 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
         chatBody.scrollTop = chatBody.scrollHeight;
     }
 
-    async function checkAuthStatus() {
-        try {
-            const response = await fetch(`${backendBaseUrl}/auth/status`, { credentials: "include" });
-            const data = await response.json();
-
-            if (!data.authenticated && data.authMode === "none") {
-                appendInfoMessage(
-                    "Autenticación requerida",
-                    "Para consultar el assistant con la app de Qlik, inicia sesión OAuth o configura QLIK_TOKEN en backend.",
-                    `${backendBaseUrl}/auth/login`
-                );
-            }
-        } catch (err) {
-            console.warn("No fue posible validar auth/status:", err);
-        }
-    }
-
     function appendUserMessage(message) {
         const messageDiv = document.createElement("div");
         messageDiv.classList.add("message", "user");
@@ -184,8 +167,11 @@ document.addEventListener("DOMContentLoaded", () => {
         bubbleDiv.classList.add("bubble");
         bubbleDiv.innerHTML = `
             <div class="assistant-status">
-                <span class="spinner" aria-hidden="true"></span>
-                <span class="assistant-status-text">Pensando...</span>
+                <div class="fancy-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
             </div>
             <div class="assistant-content"></div>
         `;
@@ -571,410 +557,147 @@ document.addEventListener("DOMContentLoaded", () => {
         const panel = uiContext._agentPanels[agentName];
         try {
             if (panel.spinner) panel.spinner.style.display = 'none';
-            if (panel.check) panel.check.style.display = 'inline-block';
             if (panel.wrap) panel.wrap.classList.add('assistant-agent-done');
         } catch (e) {}
     }
 
-    function detectAgentMarker(payload) {
-        const texts = [];
+    function cleanReasoning(text) {
+        if (!text) return "";
+        return text
+            .replace(/<plan>|<\/plan>|<final>|<\/final>|<chart[^>]*>|<\/chart>|<statement>|<\/statement>|<cite>|<\/cite>/g, "")
+            .replace(/\\u003c[^\\u003e]*\\u003e/g, "")
+            .trim();
+    }
 
-        if (typeof payload === 'string') {
-            texts.push(payload);
-        } else if (payload && typeof payload === 'object') {
-            if (typeof payload.text === 'string') texts.push(payload.text);
-            if (payload.kind === 'raw' && payload.data) {
-                texts.push(...extractTextCandidates(payload.data, []));
-            }
+    function extractKPI(card) {
+        const snapshot = card?.body?.find(b => b.snapshot);
+        if (!snapshot) return null;
+        const matrix = snapshot.snapshot?.data?.qHyperCube?.qDataPages?.[0]?.qMatrix;
+        const val = matrix?.[0]?.[0];
+        return {
+            value: val?.qNum,
+            text: val?.qText,
+            title: snapshot.snapshot?.title || "",
+            expression: snapshot.snapshot?.object_properties?.qHyperCubeDef?.qMeasures?.[0]?.qDef?.qDef || "",
+            objectId: snapshot.snapshot?.id || null
+        };
+    }
+
+    function processEvent(event) {
+        if (!event) return null;
+        
+        // Evento final completo
+        if (event.method === "message") {
+            const p = event.params || {};
+            const content = p.content?.[0];
+            const card = content?.card;
+            return {
+                type: "FINAL",
+                conclusion: card?.body?.find(b => b.text && !b.type?.includes("Action")),
+                kpi: extractKPI(card),
+                followUps: content?.followUpActions || [],
+                summary: p.summary || ""
+            };
         }
 
-        const joined = texts.join('\n').trim();
-        if (/Answers Agent\s*Answers Agent/i.test(joined)) return 'Answers Agent';
-        if (/Data Analyst Agent\s*Data Analyst Agent/i.test(joined)) return 'Data Analyst Agent';
+        const p = event.params;
+        if (!p) return null;
+
+        // 1. Nuevo agente (a través de steps de un stepper o directo)
+        const firstAgent = p.value?.content?.[0]?.card?.body?.[0]?.steps?.[0];
+        if (p.op === "add" && firstAgent && firstAgent.displayName) {
+            return {
+                type: "NEW_AGENT",
+                name: firstAgent.displayName,
+                title: firstAgent.title || firstAgent.displayName
+            };
+        }
+
+        if (p.op === "add" && p.value && p.value.displayName) {
+            return {
+                type: "NEW_AGENT",
+                name: p.value.displayName,
+                title: p.value.title || p.value.displayName
+            };
+        }
+
+        // 2. Cambio de step del agente
+        if (p.value?.isSubtle === true && p.value?.text) {
+            return {
+                type: "AGENT_STEP",
+                step: p.value.text
+            };
+        }
+
+        // 3. Razonamiento chunk
+        if (p.path && (p.path.includes("toggleContent") || p.path.includes("text")) && typeof p.value === "string") {
+            return {
+                type: "REASONING_CHUNK",
+                text: p.value
+            };
+        }
+
         return null;
     }
 
-    function renderAssistantPayload(ui, payload) {
-        if (!payload) return;
+    function createAgentPanel(ui, agentName) {
+        ui._agentPanels = ui._agentPanels || {};
+        if (ui._agentPanels[agentName]) return ui._agentPanels[agentName];
 
-        if (typeof payload === "string") {
-            processTextChunk(ui, payload);
-            return;
-        }
+        const panelWrap = document.createElement('div');
+        panelWrap.className = 'assistant-agent-panel';
 
-        if (payload.kind === "done") {
-            ui.status?.remove();
-            // Render the final tag (the last one with <chart>, or the last one overall)
-            renderFinalTag(ui);
+        const dot = document.createElement('div');
+        dot.className = 'agent-dot';
 
-            // mark any agent panels as finished (hide spinner, show check)
-            if (ui._agentPanels) {
-                Object.keys(ui._agentPanels).forEach((name) => {
-                    try {
-                        const p = ui._agentPanels[name];
-                        if (p.spinner) p.spinner.style.display = 'none';
-                        if (p.check) p.check.style.display = 'inline-block';
-                        if (p.wrap) p.wrap.classList.add('assistant-agent-done');
-                    } catch (e) {}
-                });
-            }
+        const header = document.createElement('div');
+        header.className = 'assistant-agent-header';
+        
+        const title = document.createElement('strong');
+        title.className = 'agent-name';
+        title.textContent = agentName;
 
-            ui._currentAgent = null;
-            return;
-        }
+        const statusWrap = document.createElement('div');
+        statusWrap.className = 'assistant-agent-status';
 
-        if (payload.kind === "auth_required") {
-            ui.status?.remove();
-            appendInfoMessage(
-                "Sesión requerida",
-                payload.error || "Debes autenticarte para consultar el assistant.",
-                payload.loginUrl || `${backendBaseUrl}/auth/login`
-            );
-            return;
-        }
+        const spinner = document.createElement('span');
+        spinner.className = 'assistant-agent-spinner spinner';
+        spinner.style.display = 'inline-block';
+        spinner.style.width = '14px';
+        spinner.style.height = '14px';
+        spinner.style.marginLeft = '6px';
+        spinner.style.borderTopColor = '#007aff';
 
-        if (payload.kind === "error") {
-            ui.status?.remove();
-            ui._currentAgent = null;
-            appendObjectBlock(ui.content, "Error", {
-                error: payload.error,
-                code: payload.code || null,
-                details: payload.details || null
-            });
-            return;
-        }
+        const check = document.createElement('span');
+        check.style.display = 'none';
 
-        // Handle agent markers: create agent panels for 'Answers Agent' and 'Data Analyst Agent'
-        function createAgentPanel(agentName) {
-            ui._agentPanels = ui._agentPanels || {};
-            if (ui._agentPanels[agentName]) return ui._agentPanels[agentName];
+        statusWrap.appendChild(spinner);
 
-            const panelWrap = document.createElement('div');
-            panelWrap.className = 'assistant-agent-panel';
+        const toggle = document.createElement('button');
+        toggle.className = 'assistant-agent-toggle';
+        toggle.innerHTML = 'Show reasoning ▾';
 
-            const header = document.createElement('div');
-            header.className = 'assistant-agent-header';
-            const title = document.createElement('strong');
-            title.textContent = agentName;
+        header.appendChild(title);
+        header.appendChild(statusWrap);
+        header.appendChild(toggle);
 
-            const statusWrap = document.createElement('div');
-            statusWrap.className = 'assistant-agent-status';
+        const content = document.createElement('div');
+        content.className = 'assistant-agent-content';
+        content.style.display = 'none';
 
-            const spinner = document.createElement('span');
-            spinner.className = 'assistant-agent-spinner';
-            spinner.textContent = 'Pensando...';
-            spinner.style.display = 'inline-block';
+        toggle.addEventListener('click', () => {
+            const open = content.style.display === 'block';
+            content.style.display = open ? 'none' : 'block';
+            toggle.innerHTML = open ? 'Show reasoning ▾' : 'Hide reasoning ▴';
+        });
 
-            const check = document.createElement('span');
-            check.className = 'assistant-agent-check';
-            check.style.display = 'none';
-            check.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#22c55e"/><path d="M7 13l3 3 7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        panelWrap.appendChild(dot);
+        panelWrap.appendChild(header);
+        panelWrap.appendChild(content);
+        ui.content.appendChild(panelWrap);
 
-            statusWrap.appendChild(spinner);
-            statusWrap.appendChild(check);
-
-            const toggle = document.createElement('button');
-            toggle.className = 'assistant-agent-toggle';
-            toggle.textContent = 'Mostrar';
-
-            header.appendChild(title);
-            header.appendChild(statusWrap);
-            header.appendChild(toggle);
-
-            const content = document.createElement('div');
-            content.className = 'assistant-agent-content';
-            content.style.display = 'none';
-
-            toggle.addEventListener('click', () => {
-                const open = content.style.display === 'block';
-                content.style.display = open ? 'none' : 'block';
-                toggle.textContent = open ? 'Mostrar' : 'Ocultar';
-            });
-
-            panelWrap.appendChild(header);
-            panelWrap.appendChild(content);
-            ui.content.appendChild(panelWrap);
-
-            ui._agentPanels[agentName] = { wrap: panelWrap, header, content, spinner, check, toggle };
-            return ui._agentPanels[agentName];
-        }
-
-
-        // route payloads to current open agent if set
-        ui._currentAgent = ui._currentAgent || null;
-
-        // Detect agent markers from text/raw payloads before routing the content
-        const detectedAgent = detectAgentMarker(payload);
-        if (detectedAgent) {
-            if (ui._currentAgent && ui._currentAgent !== detectedAgent) {
-                markAgentDone(ui, ui._currentAgent);
-            }
-
-            ui._currentAgent = detectedAgent;
-            const panel = createAgentPanel(detectedAgent);
-            if (panel.spinner) panel.spinner.style.display = 'inline-block';
-            if (panel.check) panel.check.style.display = 'none';
-            return;
-        }
-
-        // When a final tag arrives, reset currentAgent so final shows normally
-        if (payload.kind === 'raw' && payload.data && payload.data.params && payload.data.params.path && payload.data.params.path.includes('/content') && payload.data.params.path.includes('/text') ) {
-            // heuristics — do nothing special here
-        }
-
-        // If currentAgent is set, route content to its panel unless payload is 'done' or 'error' or final
-        if (ui._currentAgent && payload.kind !== 'done' && payload.kind !== 'error') {
-            const panel = createAgentPanel(ui._currentAgent);
-            // Prefer to feed text fragments through processTextChunk so tags (<plan>, <final>, etc.) are reassembled
-            if (payload.kind === 'text' && payload.text) {
-                // Use a lightweight UI-like object for the panel so processTextChunk stores buffer per-panel
-                const panelUi = { content: panel.content, _textBuffer: panel._textBuffer || '', _currentAgent: ui._currentAgent, _agentPanels: ui._agentPanels };
-                processTextChunk(panelUi, payload.text, ui);  // Pass ui as mainUi so _finalTags are stored there
-                panel._textBuffer = panelUi._textBuffer || '';
-                return;
-            }
-
-            if (payload.kind === 'raw' && payload.data) {
-                // Try to extract textual candidates from raw chunk and feed into reassembler if found.
-                const params = payload.data.params || payload.data;
-                const texts = extractTextCandidates(params, []);
-                if (texts.length) {
-                    const joined = texts.join('\n');
-                    const panelUi = { content: panel.content, _textBuffer: panel._textBuffer || '', _currentAgent: ui._currentAgent, _agentPanels: ui._agentPanels };
-                    processTextChunk(panelUi, joined, ui);  // Pass ui as mainUi so _finalTags are stored there
-                    panel._textBuffer = panelUi._textBuffer || '';
-                    return;
-                }
-                // otherwise fallthrough: let the generic raw/adaptive-card handlers below process this payload
-            }
-        }
-
-        // Handle raw adaptive card fragments or full card
-        if (payload.kind === 'raw' && payload.data) {
-            // Try to extract an Adaptive Card JSON
-            try {
-                const params = payload.data.params || payload.data;
-                // Common locations where the embed places card JSON
-                const maybeCard = (params.value && params.value.card) || (params.value && params.value.$schema ? params.value : null) || null;
-
-                if (maybeCard) {
-                    // store/merge last card per UI bubble
-                    ui._adaptiveCard = ui._adaptiveCard || {};
-                    ui._adaptiveCard.json = maybeCard;
-                    renderAdaptiveCard(ui, maybeCard);
-                    return;
-                }
-            } catch (e) {
-                // fallback to showing raw
-            }
-        }
-
-        if (ui.status && ui.status.isConnected) {
-            ui.status.remove();
-        }
-
-        if (payload.kind === "text" && payload.text) {
-            processTextChunk(ui, payload.text);
-            if (payload.charts) {
-                const charts = Array.isArray(payload.charts) ? payload.charts : [payload.charts];
-                if (charts.length > 1) {
-                    const gallery = document.createElement('div');
-                    gallery.className = 'assistant-gallery';
-                    charts.forEach((chart) => {
-                        const thumb = document.createElement('img');
-                        thumb.className = 'assistant-chart-image';
-                        thumb.alt = chart?.title || 'chart';
-                        thumb.src = chart?.imageUrl || chart?.src || '';
-                        if (!thumb.src) return;
-                        thumb.addEventListener('click', () => openImageModal(thumb.src, chart?.title || 'Chart'));
-                        gallery.appendChild(thumb);
-                    });
-                    ui.content.appendChild(gallery);
-                } else {
-                    charts.forEach((chart) => appendChartBlock(ui.content, chart));
-                }
-            }
-            if (payload.sources) {
-                appendSourcesBlock(ui.content, Array.isArray(payload.sources) ? payload.sources : [payload.sources]);
-            }
-            return;
-        }
-
-        if (payload.kind === "chart" || payload.charts || payload.type === "chart") {
-            const charts = payload.chart || payload.charts || payload;
-            const arr = Array.isArray(charts) ? charts : [charts];
-            if (arr.length > 1) {
-                const gallery = document.createElement('div');
-                gallery.className = 'assistant-gallery';
-                arr.forEach((chart) => {
-                    const thumb = document.createElement('img');
-                    thumb.className = 'assistant-chart-image';
-                    thumb.alt = chart?.title || 'chart';
-                    thumb.src = chart?.imageUrl || chart?.src || '';
-                    if (!thumb.src) return;
-                    thumb.addEventListener('click', () => openImageModal(thumb.src, chart?.title || 'Chart'));
-                    gallery.appendChild(thumb);
-                });
-                ui.content.appendChild(gallery);
-            } else {
-                (arr).forEach((chart) => appendChartBlock(ui.content, chart));
-            }
-            if (payload.sources) {
-                appendSourcesBlock(ui.content, Array.isArray(payload.sources) ? payload.sources : [payload.sources]);
-            }
-            return;
-        }
-
-        if (payload.sources || payload.object || payload.items || payload.type || payload.imageUrl || payload.src) {
-            appendObjectBlock(ui.content, payload.title || payload.type || "Objeto", payload);
-        }
-
-        //appendObjectBlock(ui.content, "Respuesta", payload);
-    }
-
-    // Render a simplified AdaptiveCard: show title + steps with accordion (reasoning)
-    function renderAdaptiveCard(ui, cardJson) {
-        try {
-            const container = document.createElement('div');
-            container.className = 'assistant-adaptive-card';
-
-            // Title if present
-            const title = (cardJson.body && Array.isArray(cardJson.body) && cardJson.body[0] && cardJson.body[0].steps && cardJson.body[0].steps[0] && cardJson.body[0].steps[0].displayName) || cardJson.title || 'Result';
-            const h4 = document.createElement('h4');
-            h4.textContent = title;
-            h4.style.margin = '0 0 8px 0';
-            container.appendChild(h4);
-
-            // Steps (if stepper exists)
-            const steps = [];
-            if (cardJson.body && Array.isArray(cardJson.body)) {
-                for (const b of cardJson.body) {
-                    if (b.steps && Array.isArray(b.steps)) {
-                        for (const s of b.steps) steps.push(s);
-                    }
-                }
-            }
-
-            if (steps.length) {
-                const acc = document.createElement('div');
-                acc.className = 'assistant-reasoning-accordion';
-
-                steps.forEach((step, idx) => {
-                    const item = document.createElement('div');
-                    item.className = 'assistant-reasoning-item';
-
-                    const header = document.createElement('button');
-                    header.className = 'assistant-reasoning-header';
-                    header.type = 'button';
-                    header.textContent = step.displayName || `Step ${idx + 1}`;
-
-                    const body = document.createElement('div');
-                    body.className = 'assistant-reasoning-body';
-                    body.style.display = idx === steps.length - 1 ? 'block' : 'none'; // show last by default
-
-                    // render content if present
-                    const content = step.content || step.toggleContent || step.fixedContent || {};
-                    if (Array.isArray(content)) {
-                        content.forEach(c => appendReasoningContent(body, c));
-                    } else if (content && content.items) {
-                        content.items.forEach(it => appendReasoningContent(body, it));
-                    } else {
-                        appendReasoningContent(body, content);
-                    }
-
-                    header.addEventListener('click', () => {
-                        const open = body.style.display === 'block';
-                        // close all
-                        acc.querySelectorAll('.assistant-reasoning-body').forEach(el => el.style.display = 'none');
-                        if (!open) body.style.display = 'block';
-                    });
-
-                    item.appendChild(header);
-                    item.appendChild(body);
-                    acc.appendChild(item);
-                });
-
-                container.appendChild(acc);
-            }
-
-            // If card contains charts or citations, show view sources link
-            const hasCite = JSON.stringify(cardJson).includes('cite') || JSON.stringify(cardJson).includes('citation');
-            if (hasCite) {
-                const link = document.createElement('a');
-                link.href = '#';
-                link.className = 'assistant-view-sources';
-                link.textContent = 'View sources';
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    // open sources in our modal
-                    openSourcesModal();
-                });
-                container.appendChild(link);
-            }
-
-            // If card mentions a chart id, try to load example images from backend and show one
-            try {
-                const jsonText = JSON.stringify(cardJson);
-                const chartIdMatch = jsonText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-                if (chartIdMatch) {
-                    fetch(`${backendBaseUrl}/debug/embed-images`).then(r => r.json()).then(data => {
-                        if (data && Array.isArray(data.images) && data.images.length) {
-                            // use first image as example chart preview
-                            const img = document.createElement('img');
-                            img.className = 'assistant-chart-image';
-                            img.src = data.images[0];
-                            img.alt = 'Chart preview';
-                            img.style.cursor = 'zoom-in';
-                            img.addEventListener('click', () => openImageModal(img.src, 'Chart'));
-                            const media = document.createElement('div');
-                            media.className = 'assistant-chart-media';
-                            media.appendChild(img);
-                            container.appendChild(media);
-                        }
-                    }).catch(() => {});
-                }
-            } catch (e) {}
-
-            // If AdaptiveCards lib is available, use it for faithful rendering
-            if (window.AdaptiveCards && typeof window.AdaptiveCards.AdaptiveCard === 'function') {
-                try {
-                    const adaptiveCard = new window.AdaptiveCards.AdaptiveCard();
-                    adaptiveCard.hostConfig = new window.AdaptiveCards.HostConfig({});
-                    adaptiveCard.parse(cardJson);
-                    const rendered = adaptiveCard.render();
-                    container.appendChild(rendered);
-                } catch (e) {
-                    // fallback to simplified view already built above
-                }
-            }
-
-            // If there is a current agent, try to append into its panel (if exists)
-            if (ui._currentAgent && ui._agentPanels && ui._agentPanels[ui._currentAgent]) {
-                ui._agentPanels[ui._currentAgent].content.appendChild(container);
-                // hide spinner
-                ui._agentPanels[ui._currentAgent].spinner.style.display = 'none';
-            } else {
-                ui.content.appendChild(container);
-            }
-        } catch (err) {
-            appendObjectBlock(ui.content, 'AdaptiveCard', cardJson);
-        }
-    }
-
-    function appendReasoningContent(parent, node) {
-        if (!node) return;
-        if (typeof node === 'string') {
-            const p = document.createElement('p'); p.textContent = node; parent.appendChild(p); return;
-        }
-        if (node.type === 'TextBlock' && node.text) {
-            const p = document.createElement('p'); p.textContent = node.text; parent.appendChild(p); return;
-        }
-        if (node.items && Array.isArray(node.items)) {
-            node.items.forEach(it => appendReasoningContent(parent, it));
-            return;
-        }
-        // fallback: show JSON
-        const pre = document.createElement('pre'); pre.textContent = JSON.stringify(node, null, 2); parent.appendChild(pre);
+        ui._agentPanels[agentName] = { wrap: panelWrap, header, content, spinner, check, toggle };
+        return ui._agentPanels[agentName];
     }
 
     async function sendQuestion() {
@@ -986,38 +709,195 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const assistantUI = createAssistantBubble();
 
-        const evtSource = new EventSource(
-            `${backendBaseUrl}/stream-answers?question=${encodeURIComponent(question)}`,
-            { withCredentials: true }
-        );
+        try {
+            // Paso 1: Crear el thread
+            const threadResponse = await fetch(`${backendBaseUrl}/api/threads`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question })
+            });
 
-        evtSource.onmessage = (event) => {
-            if (!event.data) return;
-
-            const rawData = event.data;
-            let payload;
-            try {
-                payload = JSON.parse(rawData);
-            } catch {
-                payload = { kind: "text", text: rawData };
+            if (!threadResponse.ok) {
+                const errData = await threadResponse.json().catch(() => ({}));
+                console.error("Error creating thread:", errData);
+                if (assistantUI.status) assistantUI.status.remove();
+                appendTextBlock(assistantUI.content, errData.error || "Error al crear el thread de conversación.");
+                return;
             }
 
-            renderAssistantPayload(assistantUI, payload);
-            chatBody.scrollTop = chatBody.scrollHeight;
+            const threadData = await threadResponse.json();
+            const threadId = threadData.id || (threadData.data && threadData.data.id);
 
-            if (payload?.kind === "done") {
-                evtSource.close();
+            if (!threadId) {
+                if (assistantUI.status) assistantUI.status.remove();
+                appendTextBlock(assistantUI.content, "La API no devolvió un ID de thread válido.");
+                return;
             }
-        };
 
-        evtSource.onerror = (err) => {
-            console.error("EventSource error:", err);
-            renderAssistantPayload(assistantUI, { kind: "error", error: "Error receiving stream" });
-            try { evtSource.close(); } catch (_e) {}
-        };
+            // Paso 2: Conectar al stream usando el threadId (Usando el endpoint estándar `/api/stream`)
+            const evtSource = new EventSource(
+                `${backendBaseUrl}/api/stream?question=${encodeURIComponent(question)}&threadId=${encodeURIComponent(threadId)}`,
+                { withCredentials: true }
+            );
+
+            const state = {
+                activeAgentPanel: null,
+                agentsList: []
+            };
+
+            evtSource.onmessage = (event) => {
+                if (!event.data) return;
+
+                let parsedEvent;
+                try {
+                    parsedEvent = JSON.parse(event.data);
+                } catch (e) {
+                    console.warn("Error parseando SSE:", e, event.data);
+                    return;
+                }
+
+                // Capturar errores del proxy o Qlik
+                if (parsedEvent.kind === "error" || parsedEvent.error) {
+                    if (assistantUI.status) assistantUI.status.remove();
+                    appendTextBlock(assistantUI.content, `Error: ${parsedEvent.error || "El stream de Qlik falló."}`);
+                    evtSource.close();
+                    return;
+                }
+
+                const action = processEvent(parsedEvent);
+                if (!action) return;
+
+                console.log("Acción del stream procesada:", action);
+
+                switch (action.type) {
+                    case "NEW_AGENT": {
+                        // Ocultar spinner fancy inicial
+                        if (assistantUI.status && assistantUI.status.isConnected) {
+                            assistantUI.status.remove();
+                        }
+
+                        // Si había un agente activo, marcarlo como finalizado
+                        if (state.activeAgentPanel) {
+                            state.activeAgentPanel.wrap.classList.add("assistant-agent-done");
+                            state.activeAgentPanel.spinner.style.display = "none";
+                        }
+
+                        // Crear y agregar nuevo agente
+                        const panel = createAgentPanel(assistantUI, action.name);
+                        state.activeAgentPanel = panel;
+                        state.agentsList.push(panel);
+                        break;
+                    }
+                    case "AGENT_STEP": {
+                        if (state.activeAgentPanel) {
+                            let stepTextEl = state.activeAgentPanel.wrap.querySelector(".agent-step-text");
+                            if (!stepTextEl) {
+                                stepTextEl = document.createElement("div");
+                                stepTextEl.className = "agent-step-text";
+                                stepTextEl.style.fontSize = "13px";
+                                stepTextEl.style.color = "#888";
+                                stepTextEl.style.marginTop = "2px";
+                                state.activeAgentPanel.header.appendChild(stepTextEl);
+                            }
+                            stepTextEl.textContent = action.step;
+                        }
+                        break;
+                    }
+                    case "REASONING_CHUNK": {
+                        if (state.activeAgentPanel) {
+                            state.activeAgentPanel.reasoningText = (state.activeAgentPanel.reasoningText || "") + action.text;
+                            state.activeAgentPanel.content.innerHTML = cleanReasoning(state.activeAgentPanel.reasoningText).replace(/\n/g, "<br>");
+                        }
+                        break;
+                    }
+                    case "FINAL": {
+                        // Marcar último agente activo como finalizado
+                        if (state.activeAgentPanel) {
+                            state.activeAgentPanel.wrap.classList.add("assistant-agent-done");
+                            state.activeAgentPanel.spinner.style.display = "none";
+                        }
+
+                        // Quitar spinner fancy si sigue ahí
+                        if (assistantUI.status && assistantUI.status.isConnected) {
+                            assistantUI.status.remove();
+                        }
+
+                        // Renderizar conclusión final
+                        if (action.conclusion?.text) {
+                            const hasChart = !!action.kpi;
+                            const objectId = action.kpi?.objectId || "ZxDKp";
+                            const finalCard = createFinalCard(action.conclusion.text, objectId, hasChart);
+                            
+                            if (action.kpi) {
+                                console.log("Inyectando KPI a conclusión:", action.kpi);
+                                const kpiVal = action.kpi.text || String(action.kpi.value);
+                                const kpiTitle = action.kpi.title || "Indicador";
+                                const kpiHtml = `
+                                    <div class="kpi-display-container" style="text-align: center; margin: 15px 0; padding: 10px; border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 8px; background: #fff;">
+                                        <div style="font-size: 13px; color: #718096; text-transform: uppercase; font-weight: bold;">${kpiTitle}</div>
+                                        <div style="font-size: 2.2rem; font-weight: 800; color: #4caf50; margin: 5px 0;">${kpiVal}</div>
+                                    </div>
+                                `;
+                                const contentEl = finalCard.querySelector(".assistant-final-card-content");
+                                if (contentEl) {
+                                    contentEl.innerHTML = kpiHtml + contentEl.innerHTML;
+                                }
+                            }
+
+                            assistantUI.content.appendChild(finalCard);
+                        } else if (action.summary) {
+                            // Si no hay conclusión formal pero hay summary
+                            const finalCard = createFinalCard(action.summary, "ZxDKp", false);
+                            assistantUI.content.appendChild(finalCard);
+                        }
+
+                        // Renderizar preguntas sugeridas (Follow-Ups)
+                        if (action.followUps && action.followUps.length) {
+                            const followUpsContainer = document.createElement("div");
+                            followUpsContainer.className = "assistant-followups-container";
+                            followUpsContainer.style.marginTop = "12px";
+                            followUpsContainer.style.display = "flex";
+                            followUpsContainer.style.flexDirection = "column";
+                            followUpsContainer.style.gap = "6px";
+
+                            action.followUps.forEach(act => {
+                                if (act.title || act.label) {
+                                    const btn = document.createElement("button");
+                                    btn.className = "suggested-question-btn";
+                                    btn.style.cssText = "text-align: left; padding: 8px 12px; background: #f0f4f8; border: 1px solid #d2dbe5; border-radius: 8px; cursor: pointer; font-size: 13px; color: #2b6cb0; transition: background 0.2s;";
+                                    btn.textContent = act.title || act.label;
+                                    btn.addEventListener("mouseenter", () => btn.style.background = "#e2e8f0");
+                                    btn.addEventListener("mouseleave", () => btn.style.background = "#f0f4f8");
+                                    btn.addEventListener("click", () => {
+                                        chatInput.value = btn.textContent;
+                                        sendQuestion();
+                                    });
+                                    followUpsContainer.appendChild(btn);
+                                }
+                            });
+                            assistantUI.content.appendChild(followUpsContainer);
+                        }
+
+                        evtSource.close();
+                        break;
+                    }
+                }
+                chatBody.scrollTop = chatBody.scrollHeight;
+            };
+
+            evtSource.onerror = (err) => {
+                console.error("EventSource error:", err);
+                if (assistantUI.status) assistantUI.status.remove();
+                appendTextBlock(assistantUI.content, "Error recibiendo el stream de Qlik.");
+                try { evtSource.close(); } catch (_e) {}
+            };
+        } catch (error) {
+            console.error("Error en sendQuestion:", error);
+            if (assistantUI.status) assistantUI.status.remove();
+            appendTextBlock(assistantUI.content, "Error de conexión con el backend.");
+        }
     }
 
-    checkAuthStatus();
     sendButton.addEventListener("click", sendQuestion);
     chatInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
