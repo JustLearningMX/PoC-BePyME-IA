@@ -31,8 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return embed;
     }
 
-    function createFinalCard(content, objectId = "ZxDKp") {
-        console.log("createFinalCard called with objectId:", objectId);
+    function createFinalCard(content, objectId = "ZxDKp", hasChart = false) {
+        console.log("createFinalCard called with objectId:", objectId, "hasChart:", hasChart);
 
         // Extract the main text (remove any HTML tags)
         const plainText = content.replace(/<[^>]*>/g, '').trim();
@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Title with checkmark
         const title = document.createElement('div');
         title.className = 'assistant-final-card-title';
-        title.textContent = 'Resultado Final';
+        title.textContent = hasChart ? 'Conclusión con Análisis' : 'Resultado Final';
         cardContent.appendChild(title);
         
         // Content text (preserve markdown formatting)
@@ -62,48 +62,56 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/\n/g, '<br>');
         cardContent.appendChild(textDiv);
         
-        // Qlik embed container
-        const embedDiv = document.createElement('div');
-        embedDiv.className = 'assistant-final-card-embed';
-        
-        // Create Qlik embed dynamically
-        getQlikAssistantId().then((assistantId) => {
-            console.log("getQlikAssistantId returned:", assistantId);
+        // Only add Qlik embed if there's a chart
+        if (hasChart) {
+            const embedDiv = document.createElement('div');
+            embedDiv.className = 'assistant-final-card-embed';
 
-            if (!assistantId) {
-                console.error("No assistant ID");
+            // Create Qlik embed dynamically
+            getQlikAssistantId().then((assistantId) => {
+                console.log("getQlikAssistantId returned:", assistantId);
+
+                if (!assistantId) {
+                    console.error("No assistant ID");
+                    const errorMsg = document.createElement('div');
+                    errorMsg.style.cssText = 'color: #d32f2f; padding: 12px; font-size: 12px;';
+                    errorMsg.textContent = 'No se pudo cargar el gráfico (ID del asistente no configurado)';
+                    embedDiv.appendChild(errorMsg);
+                    return;
+                }
+
+                console.log("Creating qlik-embed with app-id:", assistantId, "object-id:", objectId);
+
+                const qlikEmbed = document.createElement('qlik-embed');
+                qlikEmbed.setAttribute('ui', 'analytics/snapshot');
+                qlikEmbed.setAttribute('app-id', assistantId);
+                qlikEmbed.setAttribute('object-id', objectId);
+                qlikEmbed.setAttribute('disable-cell-padding', 'true');
+
+                // Force rendering with explicit style
+                qlikEmbed.style.width = '100%';
+                qlikEmbed.style.minHeight = '300px';
+                qlikEmbed.style.display = 'block';
+
+                // Add error handler
+                qlikEmbed.addEventListener('error', (e) => {
+                    console.error('Qlik embed error:', e);
+                    embedDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; font-size: 12px;">Error al cargar el gráfico. Verifica que el object-id existe.</div>';
+                });
+
+                embedDiv.appendChild(qlikEmbed);
+                console.log("qlik-embed appended to embedDiv");
+            }).catch(err => {
+                console.error('Error getting assistant ID:', err);
                 const errorMsg = document.createElement('div');
                 errorMsg.style.cssText = 'color: #d32f2f; padding: 12px; font-size: 12px;';
-                errorMsg.textContent = 'No se pudo cargar el gráfico (ID del asistente no configurado)';
+                errorMsg.textContent = 'Error al obtener ID del asistente';
                 embedDiv.appendChild(errorMsg);
-                return;
-            }
-
-            console.log("Creating qlik-embed with app-id:", assistantId, "object-id:", objectId);
-
-            const qlikEmbed = document.createElement('qlik-embed');
-            qlikEmbed.setAttribute('ui', 'analytics/snapshot');
-            qlikEmbed.setAttribute('app-id', assistantId);
-            qlikEmbed.setAttribute('object-id', objectId);
-            qlikEmbed.setAttribute('disable-cell-padding', 'true');
-
-            // Add error handler
-            qlikEmbed.addEventListener('error', (e) => {
-                console.error('Qlik embed error:', e);
-                embedDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; font-size: 12px;">Error al cargar el gráfico</div>';
             });
 
-            embedDiv.appendChild(qlikEmbed);
-            console.log("qlik-embed appended to embedDiv");
-        }).catch(err => {
-            console.error('Error getting assistant ID:', err);
-            const errorMsg = document.createElement('div');
-            errorMsg.style.cssText = 'color: #d32f2f; padding: 12px; font-size: 12px;';
-            errorMsg.textContent = 'Error al obtener ID del asistente';
-            embedDiv.appendChild(errorMsg);
-        });
+            cardContent.appendChild(embedDiv);
+        }
 
-        cardContent.appendChild(embedDiv);
         bubbleDiv.appendChild(cardContent);
         cardDiv.appendChild(bubbleDiv);
         
@@ -232,7 +240,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const p = document.createElement('p');
                 p.className = 'assistant-text-block';
-                p.textContent = ' ' + inner.replace(/<[^>]*>/g, '').slice(0, 100) + '... ';
+                // Show full content, don't truncate
+                const cleanContent = inner.replace(/<[^>]*>/g, '').trim();
+                p.textContent = ' ' + cleanContent + ' ';
                 block.appendChild(p);
 
                 const close = document.createElement('span');
@@ -317,7 +327,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Process final tags when stream is done: use last one with <chart>, or last one if none have charts
+    // Process final tags when stream is done:
+    // - Use the one with ** (formatted) for text content
+    // - Use the one with <chart> for the chart
     function renderFinalTag(ui) {
         console.log("renderFinalTag called. _finalTags:", ui._finalTags?.length || 0);
 
@@ -326,57 +338,75 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Find the last tag that contains <chart>, or fall back to the last tag
-        let finalContent = ui._finalTags[ui._finalTags.length - 1]?.content || "";
-        let selectedTagIndex = ui._finalTags.length - 1;
-
+        // Find the last tag with <chart> for chart rendering
+        let chartContent = null;
+        let chartIndex = -1;
         for (let i = ui._finalTags.length - 1; i >= 0; i--) {
             if (ui._finalTags[i].content.includes('<chart')) {
-                finalContent = ui._finalTags[i].content;
-                selectedTagIndex = i;
+                chartContent = ui._finalTags[i].content;
+                chartIndex = i;
                 console.log("Found final tag with <chart> at index:", i);
                 break;
             }
         }
 
-        console.log("Selected final tag content (first 200 chars):", finalContent.slice(0, 200));
+        // Find the last tag with ** (formatted text) for text content
+        let textContent = null;
+        let textIndex = -1;
+        for (let i = ui._finalTags.length - 1; i >= 0; i--) {
+            if (ui._finalTags[i].content.includes('**')) {
+                textContent = ui._finalTags[i].content;
+                textIndex = i;
+                console.log("Found final tag with ** at index:", i);
+                break;
+            }
+        }
 
-        if (!finalContent?.trim()) {
-            console.log("Final content is empty");
+        // If no formatted text found, use the one with chart
+        if (!textContent && chartContent) {
+            textContent = chartContent;
+            textIndex = chartIndex;
+            console.log("Using chart tag also for text (no ** found)");
+        }
+
+        // If still nothing, use the last one
+        if (!textContent) {
+            textContent = ui._finalTags[ui._finalTags.length - 1]?.content || "";
+            textIndex = ui._finalTags.length - 1;
+            console.log("Using last final tag for text");
+        }
+
+        if (!textContent?.trim()) {
+            console.log("Text content is empty");
             return;
         }
 
-        try {
-            // Extract object ID from <chart object-id="..."> if present
-            let objectId = 'ZxDKp'; // default
-            const chartMatch = finalContent.match(/<chart[^>]*object-id=["']([^"']+)["']/i);
+        // Extract object ID for chart (from chartContent if available)
+        let objectId = 'ZxDKp'; // default
+        if (chartContent) {
+            const chartMatch = chartContent.match(/<chart[^>]*id=["']([^"']+)["']/i);
             if (chartMatch) {
                 objectId = chartMatch[1];
-                console.log("Extracted object-id from chart tag:", objectId);
-            } else {
-                // Fallback: look for UUID in content
-                const uuidMatch = finalContent.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-                if (uuidMatch) {
-                    objectId = uuidMatch[0];
-                    console.log("Extracted object-id from UUID pattern:", objectId);
-                }
+                console.log("Extracted object-id from chart id attribute:", objectId);
             }
+        }
 
-            // Extract text content (remove all tags including <chart>)
-            const textContent = finalContent
-                .replace(/<[^>]*>/g, '')
-                .replace(/\s+/g, ' ')
+        try {
+            // Extract plain text and format
+            const plainText = textContent
+                .replace(/<[^>]*>/g, '')  // Remove all tags
+                .replace(/\[[^\]]*\]/g, '')  // Remove [citation] markers
                 .trim();
 
-            console.log("Text content (first 150 chars):", textContent.slice(0, 150));
+            console.log("Plain text (first 200 chars):", plainText.slice(0, 200));
 
-            if (textContent) {
-                const finalCard = createFinalCard(textContent, objectId);
+            if (plainText) {
+                const finalCard = createFinalCard(plainText, objectId, chartContent !== null);
                 chatBody.appendChild(finalCard);
                 chatBody.scrollTop = chatBody.scrollHeight;
                 console.log("Final card rendered successfully");
             } else {
-                console.log("Text content is empty after removing tags");
+                console.log("Plain text is empty after processing");
             }
         } catch (e) {
             console.warn("Error rendering final tag:", e);

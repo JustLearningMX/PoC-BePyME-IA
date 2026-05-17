@@ -1,29 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agente de IA</title>
-<!--    <link rel="stylesheet" href="styles/index.css">-->
+    <!--    <link rel="stylesheet" href="styles/index.css">-->
     <link rel="stylesheet" href="styles/customAIChat.css">
 
     <!-- This script loads the Qlik Embed Web Components library-->
-    <script
-            crossorigin="anonymous"
-            type="application/javascript"
-            src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components@1/dist/index.min.js"
-            data-host="https://dataiq-mexico.us.qlikcloud.com"
-            data-client-id="7f319abbd9122edb0b11e5d0c1bd46e7"
-            data-redirect-uri="http://localhost:63343/simple-answer-bot/src/oauth_callback.html"
-            data-access-token-storage="session"
-            data-auto-redirect="true"
-    ></script>
+    <script crossorigin="anonymous" type="application/javascript"
+        src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components@1/dist/index.min.js"
+        data-host="https://dataiq-mexico.us.qlikcloud.com" data-client-id="7f319abbd9122edb0b11e5d0c1bd46e7"
+        data-redirect-uri="http://127.0.0.1:5500/src/oauth_callback.html" data-access-token-storage="session"
+        data-auto-redirect="true"></script>
 </head>
-<body>
-<h3 style="text-align: center">CRM BePyME Asistente</h3>
 
-<section
-        style="
+<body>
+    <h3 style="text-align: center">CRM BePyME Asistente</h3>
+
+    <section style="
             display: flex;
             gap: 25px;
             width: 100%;
@@ -32,52 +28,44 @@
             box-sizing: border-box;
             align-items: stretch;
             height: calc(100vh - 80px);
-        "
->
-    <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
-        <!--In this example, we will show how to use the Qlik AI Assistant component. -->
-        <!--<div style="
+        ">
+        <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
+            <!--In this example, we will show how to use the Qlik AI Assistant component. -->
+            <!--<div style="
             box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;
             min-width: 500px;
             margin: 0 auto;
         ">-->
-        <div class="chat-container">
-            <qlik-embed
-                    ui="ai/agentic-assistant"
-                    assistant-id="47461ad6-1685-4ed6-a00a-e0f6224b3b0d"
-                    language="es"
-            ></qlik-embed>
-        </div>
-    </article>
-
-    <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
-        <!-- This example shows how to use the Qlik AI Assistant component with a Knowledgebases API and Assistants API to build a custom chat assistant.-->
-        <div class="chat-container" style="min-height: 600px">
-            <div class="chat-header">
-                <h4>Tu asistente</h4>
-                <span class="header-span">Pregunta, Qlik responde.</span>
+            <div class="chat-container">
+                <qlik-embed ui="ai/agentic-assistant" assistant-id="47461ad6-1685-4ed6-a00a-e0f6224b3b0d"
+                    language="es"></qlik-embed>
             </div>
+        </article>
 
-            <div class="chat-body" id="chat-body">
-                <div class="message assistant">
-                    <div class="bubble">
-                        <p>Hola, hablemos.</p>
+        <article style="width: 45%; display: flex; flex-direction: column; min-height: 0; height: 100%;">
+            <!-- This example shows how to use the Qlik AI Assistant component with a Knowledgebases API and Assistants API to build a custom chat assistant.-->
+            <div class="chat-container" style="min-height: 600px">
+                <div class="chat-header">
+                    <h4>Tu asistente</h4>
+                    <span class="header-span">Pregunta, Qlik responde.</span>
+                </div>
+
+                <div class="chat-body" id="chat-body">
+                    <div class="message assistant">
+                        <div class="bubble">
+                            <p>Hola, hablemos.</p>
+                        </div>
                     </div>
                 </div>
+                <div class="chat-footer">
+                    <input type="text" id="chat-input" placeholder="Haz tu pregunta aquí..." />
+                    <button id="send-btn">Enviar</button>
+                </div>
             </div>
-            <div class="chat-footer">
-                <input
-                        type="text"
-                        id="chat-input"
-                        placeholder="Haz tu pregunta aquí..."
-                />
-                <button id="send-btn">Enviar</button>
-            </div>
-        </div>
-    </article>
-</section>
+        </article>
+    </section>
 
-<!--<script type="module">
+    <!--<script type="module">
     import { createQlikApi  } from "https://cdn.jsdelivr.net/npm/@qlik/api@2/index.js";
 
     async function createThread(question) {
@@ -107,4 +95,5 @@
     <script src="scripts/customAIChat.js"></script>
     <script src="https://dataiq-mexico.us.qlikcloud.com/resources/assets/external/requirejs/require.js"></script>
 </body>
+
 </html>
