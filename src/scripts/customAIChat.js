@@ -9,6 +9,31 @@ document.addEventListener("DOMContentLoaded", () => {
         .then((response) => response.ok ? response.json() : {})
         .catch(() => ({}));
 
+    // Cargar metadatos del asistente al iniciar
+    fetch(`${backendBaseUrl}/api/assistant`)
+        .then(response => {
+            if (response.ok) return response.json();
+            throw new Error("Failed to fetch assistant metadata");
+        })
+        .then(data => {
+            if (data && data.name) {
+                // Actualizar título del chat header
+                const chatHeaderTitle = document.querySelector(".chat-header h4");
+                if (chatHeaderTitle) {
+                    chatHeaderTitle.textContent = "Asistente " + data.name;
+                }
+
+                // Actualizar subtítulo
+                const chatHeaderSubtitle = document.querySelector(".chat-header .header-span");
+                if (chatHeaderSubtitle && data.welcomeMessage) {
+                    chatHeaderSubtitle.textContent = data.welcomeMessage;
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Error loading assistant metadata:", err);
+        });
+
     async function getQlikAppId() {
         const cfg = await qlikConfigPromise;
         return cfg.QLIK_APP_ID || null;
@@ -45,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function AdaptiveCardRenderer(card) {
         const container = document.createElement('div');
         container.className = 'adaptive-card-container';
-        
+
         let detailsSection = null;
         const renderedElements = [];
 
@@ -70,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const kpiContainer = document.createElement('div');
                         kpiContainer.className = 'qlik-kpi-container';
                         kpiContainer.setAttribute('data-citation-index', String(index));
-                        
+
                         const qHyperCube = snapshot.data?.qHyperCube;
                         const matrix = qHyperCube?.qDataPages?.[0]?.qMatrix;
                         const cell = matrix?.[0]?.[matrix[0].length - 1] || matrix?.[0]?.[0];
@@ -107,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         chartContainer.className = 'qlik-chart-container';
                         chartContainer.setAttribute('data-citation-index', String(index));
                         chartContainer.style.cssText = 'margin: 20px 0; padding: 16px; background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 16px; height: 250px; position: relative;';
-                        
+
                         if (snapshot.title) {
                             const chartTitle = document.createElement('div');
                             chartTitle.className = 'qlik-kpi-title';
@@ -123,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         const qHyperCube = snapshot.data?.qHyperCube;
                         const matrix = qHyperCube?.qDataPages?.[0]?.qMatrix || [];
-                        
+
                         const labels = matrix.map(row => row[0]?.qText || String(row[0]?.qNum || ''));
                         const datasetData = matrix.map(row => row[1] !== undefined ? (row[1].qNum !== undefined ? row[1].qNum : parseFloat(row[1].qText)) : 0);
                         const datasetLabel = qHyperCube?.qMeasureInfo?.[0]?.qFallbackTitle || 'Métrica';
@@ -173,15 +198,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
                 case 'ActionSet': {
-                    // Ignorar completamente el ActionSet de fuentes
+                    // Ignorar el ActionSet (botón de toggle) ya que la fuente se muestra directamente
                     return null;
                 }
                 case 'Container': {
-                    if (element.id === 'detailsSection') {
-                        // Ignorar completamente el contenedor de fuentes
-                        return null;
-                    }
                     const div = document.createElement('div');
+                    if (element.id === 'detailsSection') {
+                        div.className = 'adaptive-card-details-panel';
+                        div.style.display = 'block'; // Mostrar la fuente de los datos directamente
+                        detailsSection = div;
+                    }
+
                     if (element.items) {
                         element.items.forEach((item, itemIdx) => {
                             const childEl = renderElement(item, itemIdx);
@@ -277,25 +304,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (action.text) {
                     const btn = document.createElement('button');
                     btn.className = 'suggested-question-row';
-                    
+
                     const leftDiv = document.createElement('div');
                     leftDiv.style.cssText = 'display: flex; align-items: center; gap: 10px;';
-                    
+
                     const circle = document.createElement('span');
                     circle.className = 'suggested-question-circle';
                     circle.textContent = '→';
-                    
+
                     const txt = document.createElement('span');
                     txt.style.cssText = 'font-size: 13.5px; color: #1d1d1f; font-weight: 500; font-family: inherit;';
                     txt.textContent = action.text;
-                    
+
                     leftDiv.appendChild(circle);
                     leftDiv.appendChild(txt);
-                    
+
                     const rightArrow = document.createElement('span');
                     rightArrow.style.cssText = 'color: #86868b; font-size: 14px; font-weight: 500; font-family: inherit;';
                     rightArrow.textContent = '↵';
-                    
+
                     btn.appendChild(leftDiv);
                     btn.appendChild(rightArrow);
 
@@ -318,14 +345,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (card) {
             return ConclusionCard(card, chatInput, sendQuestion);
         }
-        
+
         const fallbackCard = {
             body: [
                 { type: "TextBlock", text: "Conclusión", weight: "bolder", size: "medium" },
                 { type: "TextBlock", text: content, wrap: true }
             ]
         };
-        
+
         if (kpi) {
             fallbackCard.body.push({
                 type: "Qlik.Snapshot",
@@ -348,7 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
         }
-        
+
         return ConclusionCard(fallbackCard, chatInput, sendQuestion);
     }
 
@@ -480,7 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (panel.check) panel.check.style.display = 'inline-block';
                         if (panel.wrap) panel.wrap.classList.add('assistant-agent-done');
                     }
-                } catch (e) {}
+                } catch (e) { }
                 ui._currentAgent = null;
 
                 // Remove processed part and reset regex
@@ -640,7 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (Array.isArray(value)) { for (const it of value) extractTextCandidates(it, out); return out; }
         if (typeof value === 'object') {
-            const preferredKeys = ['text','markdown','output','title','subtitle','message','value'];
+            const preferredKeys = ['text', 'markdown', 'output', 'title', 'subtitle', 'message', 'value'];
             for (const k of preferredKeys) if (k in value) extractTextCandidates(value[k], out);
             for (const v of Object.values(value)) if (typeof v === 'object') extractTextCandidates(v, out);
         }
@@ -762,7 +789,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             if (panel.spinner) panel.spinner.style.display = 'none';
             if (panel.wrap) panel.wrap.classList.add('assistant-agent-done');
-        } catch (e) {}
+        } catch (e) { }
     }
 
     function cleanReasoning(text) {
@@ -789,7 +816,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function processEvent(event) {
         if (!event) return null;
-        
+
         // Evento final completo
         if (event.method === "message") {
             const p = event.params || {};
@@ -858,7 +885,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const header = document.createElement('div');
         header.className = 'assistant-agent-header';
-        
+
         const title = document.createElement('strong');
         title.className = 'agent-name';
         title.textContent = agentName;
@@ -881,7 +908,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const toggle = document.createElement('button');
         toggle.className = 'assistant-agent-toggle';
-        toggle.innerHTML = 'Mostrar ▾';
+        toggle.innerHTML = '▾';
 
         header.appendChild(title);
         header.appendChild(statusWrap);
@@ -894,7 +921,7 @@ document.addEventListener("DOMContentLoaded", () => {
         toggle.addEventListener('click', () => {
             const open = content.style.display === 'block';
             content.style.display = open ? 'none' : 'block';
-            toggle.innerHTML = open ? 'Mostrar ▾' : 'Ocultar ▴';
+            toggle.innerHTML = open ? '▾' : '▴';
         });
 
         panelWrap.appendChild(dot);
@@ -1089,7 +1116,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("EventSource error:", err);
                 if (assistantUI.status) assistantUI.status.remove();
                 appendTextBlock(assistantUI.content, "Error recibiendo el stream de Qlik.");
-                try { evtSource.close(); } catch (_e) {}
+                try { evtSource.close(); } catch (_e) { }
             };
         } catch (error) {
             console.error("Error en sendQuestion:", error);
@@ -1108,39 +1135,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Debug helper: accessible from browser console
     window.debugQlikEmbed = {
-        testEmbed: async function(objectId = "ZxDKp") {
+        testEmbed: async function (objectId = "ZxDKp") {
             const appId = await getQlikAppId();
             const assistantId = await getQlikAssistantId();
             console.log("=== Qlik Embed Debug ===");
             console.log("App ID:", appId);
             console.log("Assistant ID:", assistantId);
             console.log("Object ID:", objectId);
-            
+
             if (!assistantId) {
                 console.error("No assistant ID configured");
                 return;
             }
-            
+
             const testDiv = document.createElement('div');
             testDiv.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 400px; height: 300px; background: white; border: 2px solid red; z-index: 9999; padding: 10px;';
-            
+
             const label = document.createElement('div');
             label.textContent = `Test Embed (assistant: ${assistantId.slice(0, 8)}..., object: ${objectId})`;
             label.style.cssText = 'font-weight: bold; margin-bottom: 10px; font-size: 12px;';
             testDiv.appendChild(label);
-            
+
             const embed = document.createElement('qlik-embed');
             embed.setAttribute('ui', 'analytics/snapshot');
             embed.setAttribute('app-id', assistantId);
             embed.setAttribute('object-id', objectId);
             embed.style.cssText = 'width: 100%; height: 100%;';
-            
+
             embed.addEventListener('load', () => console.log('Embed loaded successfully'));
             embed.addEventListener('error', (e) => console.error('Embed error:', e));
-            
+
             testDiv.appendChild(embed);
             document.body.appendChild(testDiv);
-            
+
             console.log("Test embed created. Should appear in bottom-right corner.");
             console.log("Close it with: document.body.removeChild(document.body.lastChild)");
         }

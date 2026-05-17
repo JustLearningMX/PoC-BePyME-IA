@@ -158,6 +158,42 @@ app.all("/api/stream", async (req, res) => {
   }
 });
 
+// 3. Obtener metadatos del asistente de Qlik
+app.get("/api/assistant", async (req, res) => {
+  try {
+    const assistantId = req.query.assistantId || QLIK_ASSISTANT_ID;
+
+    if (!QLIK_TOKEN) {
+      return res.status(500).json({ error: "Falta configurar QLIK_TOKEN en el archivo .env" });
+    }
+
+    if (!assistantId) {
+      return res.status(400).json({ error: "Se requiere assistantId" });
+    }
+
+    const url = `${QLIK_HOST.replace(/\/$/, "")}/api/v1/assistants/${assistantId}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${QLIK_TOKEN}`,
+        "Accept-Language": "es"
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Error al obtener el asistente de Qlik", details: data });
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error("Error en GET /api/assistant:", error);
+    res.status(500).json({ error: "Error interno del servidor", details: error.message });
+  }
+});
+
 // Alias para retrocompatibilidad con la versión anterior si el frontend aún lo usa
 app.get("/stream-answers", async (req, res) => {
   // Redirigimos el comportamiento al nuevo endpoint pasando los parámetros de query.
