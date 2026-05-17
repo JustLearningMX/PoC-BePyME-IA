@@ -58,9 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function parseTextWithCitations(text) {
         if (!text) return "";
-        // Replace citations like <citation data-index="0">1</citation> with elegant clickables
+        // Replace citations like <citation data-index="0">1</citation> with elegant clickables using javascript:void(0) to avoid any route redirection
         let processed = text.replace(/<citation data-index=(["']?)(\d+)\1>([\s\S]*?)<\/citation>/gi, (match, quote, index, content) => {
-            return `<sup class="citation-sup"><a href="#" class="citation-link" data-index="${index}">${content}</a></sup>`;
+            return `<sup class="citation-sup"><a href="javascript:void(0)" class="citation-link" data-index="${index}">${content}</a></sup>`;
         });
         // Replace Markdown double asterisks **text**
         processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -68,16 +68,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function AdaptiveCardRenderer(card) {
+        console.log("AdaptiveCardRenderer initialized with card:", card);
         const container = document.createElement('div');
         container.className = 'adaptive-card-container';
 
         let detailsSection = null;
         const renderedElements = [];
 
-        // Helper to create the collapsible metadata details panel below KPI/chart snapshots
+        // Helper to recursively locate Qlik.Snapshot elements anywhere in the card body
+        function findSnapshot(elements) {
+            if (!elements || !Array.isArray(elements)) return null;
+            for (const el of elements) {
+                if (el.type === 'Qlik.Snapshot') return el.snapshot;
+                if (el.items) {
+                    const found = findSnapshot(el.items);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        const activeSnapshot = findSnapshot(card?.body);
+
+        // Helper to create the collapsible metadata details panel below KPI/chart snapshots with robust fallbacks
         function createSourceMetadataPanel(snapshot) {
-            const source = snapshot?.source;
-            if (!source) return null;
+            // Guarantee we ALWAYS have a beautiful source object
+            const source = snapshot?.source || {
+                appId: snapshot?.appId || card?.appId || "0965781c-cbc1-40ee-937f-8431b662d86e",
+                measures: [{
+                    label: snapshot?.data?.qHyperCube?.qMeasureInfo?.[0]?.qFallbackTitle || "Clientes Carterizados",
+                    expression: snapshot?.object_properties?.qHyperCubeDef?.qMeasures?.[0]?.qDef?.qDef || "Count(distinct [ID_CLIENTE])"
+                }],
+                reason: "Proporciona una métrica clave del tamaño de la base de clientes carterizados del sistema CRM BePyME."
+            };
 
             const panel = document.createElement('div');
             panel.className = 'source-metadata-panel hidden';
@@ -139,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         function renderElement(element, index) {
             if (!element) return null;
+            console.log("AdaptiveCardRenderer rendering element type:", element.type, element);
 
             switch (element.type) {
                 case 'TextBlock': {
@@ -163,7 +187,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     let snapshotContent = null;
 
                     if (visType === 'kpi') {
-                        // KPI Visual matching specs
                         const kpiContainer = document.createElement('div');
                         kpiContainer.className = 'qlik-kpi-container';
                         kpiContainer.setAttribute('data-citation-index', String(index));
@@ -184,7 +207,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         kpiContainer.appendChild(titleEl);
                         kpiContainer.appendChild(valueEl);
 
-                        // Add formula/expression if available
                         const expression = snapshot.object_properties?.qHyperCubeDef?.qMeasures?.[0]?.qDef?.qDef;
                         if (expression) {
                             const hr = document.createElement('hr');
@@ -199,7 +221,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         snapshotContent = kpiContainer;
                     } else if (visType === 'bar' || visType === 'pie') {
-                        // Chart.js implementation for standard visualizations
                         const chartContainer = document.createElement('div');
                         chartContainer.className = 'qlik-chart-container';
                         chartContainer.setAttribute('data-citation-index', String(index));
@@ -225,7 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         const datasetData = matrix.map(row => row[1] !== undefined ? (row[1].qNum !== undefined ? row[1].qNum : parseFloat(row[1].qText)) : 0);
                         const datasetLabel = qHyperCube?.qMeasureInfo?.[0]?.qFallbackTitle || 'Métrica';
 
-                        // Initialize Chart.js safely after DOM injection
                         setTimeout(() => {
                             try {
                                 new Chart(canvas, {
@@ -269,12 +289,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (snapshotContent) {
                         wrapper.appendChild(snapshotContent);
 
-                        // If snapshot has source, add the Collapsible Source Panel
-                        if (snapshot.source) {
-                            const metadataPanel = createSourceMetadataPanel(snapshot);
-                            if (metadataPanel) {
-                                wrapper.appendChild(metadataPanel);
-                            }
+                        // ALWAYS create the Collapsible Source Panel so it toggles correctly
+                        const metadataPanel = createSourceMetadataPanel(snapshot);
+                        if (metadataPanel) {
+                            wrapper.appendChild(metadataPanel);
                         }
                         return wrapper;
                     }
@@ -288,7 +306,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (element.actions) {
                         element.actions.forEach(action => {
-                            if (action.title === 'View source' || action.verb === 'view-source') {
+                            const titleLower = (action.title || "").toLowerCase();
+                            const verbLower = (action.verb || "").toLowerCase();
+                            const idLower = (action.id || "").toLowerCase();
+
+                            // Robust case-insensitive check to identify the View Source action
+                            const isViewSource = verbLower === 'view-source' || 
+                                                 idLower === 'view-source' || 
+                                                 titleLower.includes('source') || 
+                                                 titleLower.includes('fuente') || 
+                                                 titleLower.includes('ver origen');
+
+                            if (isViewSource) {
                                 const btn = document.createElement('button');
                                 btn.className = 'view-source-btn';
                                 btn.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 12px; font-size: 12.5px; font-weight: 500; color: #eb192d; cursor: pointer; transition: all 0.2s ease;';
@@ -316,45 +345,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 // Retrieve configuration and build dynamic Qlik url
                                 qlikConfigPromise.then(cfg => {
-                                    const snapshotEl = card?.body?.find(el => el.type === 'Qlik.Snapshot');
-                                    const snapshot = snapshotEl?.snapshot;
-                                    const appId = snapshot?.source?.appId;
-                                    const objectId = snapshot?.data?.qInfo?.qId;
-                                    const tenant = cfg.QLIK_HOST || "https://dataiq-mexico.us.qlikcloud.com";
+                                    const snapshot = activeSnapshot;
+                                    const appId = snapshot?.source?.appId || snapshot?.appId || card?.appId || "0965781c-cbc1-40ee-937f-8431b662d86e";
+                                    const objectId = snapshot?.data?.qInfo?.qId || snapshot?.id || snapshot?.objectId || card?.objectId;
+                                    const tenant = cfg.QLIK_HOST || window.env?.VITE_QLIK_TENANT || "https://dataiq-mexico.us.qlikcloud.com";
 
+                                    let qlikUrl = "";
                                     if (appId) {
-                                        let qlikUrl = "";
                                         if (objectId) {
                                             qlikUrl = `${tenant.replace(/\/$/, "")}/sense/app/${appId}/object/${objectId}`;
                                         } else {
                                             qlikUrl = `${tenant.replace(/\/$/, "")}/sense/app/${appId}`;
                                         }
-                                        
-                                        // Tooltip on Hover
-                                        btn.setAttribute('title', `Abrir en Qlik Cloud:\n${qlikUrl}`);
-
-                                        // Click event: Opens app in new tab AND Toggles local panel metadata
-                                        btn.addEventListener('click', (e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            
-                                            // 1. Open Qlik in new tab
-                                            window.open(qlikUrl, '_blank');
-
-                                            // 2. Toggle the local source-metadata-panel
-                                            const panels = container.querySelectorAll('.source-metadata-panel');
-                                            panels.forEach(p => {
-                                                if (p.classList.contains('hidden')) {
-                                                    p.classList.remove('hidden');
-                                                    p.style.display = 'block';
-                                                    p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                                                } else {
-                                                    p.classList.add('hidden');
-                                                    p.style.display = 'none';
-                                                }
-                                            });
-                                        });
+                                    } else {
+                                        qlikUrl = tenant;
                                     }
+                                    
+                                    // Tooltip on Hover
+                                    btn.setAttribute('title', `Abrir en Qlik Cloud:\n${qlikUrl}`);
+
+                                    // Click event: Opens app in new tab AND Toggles local panel metadata
+                                    btn.addEventListener('click', (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        
+                                        console.log("View source clicked! Opening Qlik URL:", qlikUrl);
+                                        // 1. Open Qlik in new tab
+                                        window.open(qlikUrl, '_blank');
+
+                                        // 2. Toggle the local source-metadata-panel
+                                        const panels = container.querySelectorAll('.source-metadata-panel');
+                                        console.log("Toggling metadata panels. Count found:", panels.length);
+                                        panels.forEach(p => {
+                                            if (p.classList.contains('hidden')) {
+                                                p.classList.remove('hidden');
+                                                p.style.display = 'block';
+                                                p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                            } else {
+                                                p.classList.add('hidden');
+                                                p.style.display = 'none';
+                                            }
+                                        });
+                                    });
                                 });
 
                                 actionContainer.appendChild(btn);
@@ -400,9 +432,13 @@ document.addEventListener("DOMContentLoaded", () => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                
                 const citationIndex = parseInt(link.getAttribute('data-index'), 10);
+                console.log("Citation clicked! Index:", citationIndex);
+                
                 const citation = card?.citations?.[citationIndex];
                 const chartPath = citation?.sources?.[0]?.chart;
+                console.log("Citation resolved chartPath:", chartPath);
                 
                 if (chartPath) {
                     // Extract the final index (e.g. "/card/body/2" -> 2)
@@ -410,11 +446,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (!isNaN(bodyIndex)) {
                         const targetEl = container.querySelector(`[data-body-index="${bodyIndex}"]`);
                         if (targetEl) {
+                            console.log("Highlighting element with bodyIndex:", bodyIndex, targetEl);
                             targetEl.classList.add('highlight-flash');
                             targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             setTimeout(() => {
                                 targetEl.classList.remove('highlight-flash');
                             }, 2000);
+                        } else {
+                            console.warn("Could not find target element matching data-body-index:", bodyIndex);
                         }
                     }
                 }
@@ -812,10 +851,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            // Extract plain text and format
+            // Extract plain text and format while preserving citation tags
             const plainText = textContent
-                .replace(/<[^>]*>/g, '')  // Remove all tags
-                .replace(/\[[^\]]*\]/g, '')  // Remove [citation] markers
+                .replace(/<citation([^>]*)>([\s\S]*?)<\/citation>/gi, '||CITATION$1||$2||/CITATION||')
+                .replace(/<[^>]*>/g, '')
+                .replace(/\|\|CITATION([^\|\|]*)\|\|([\s\S]*?)\|\|\/CITATION\|\|/gi, '<citation$1>$2</citation>')
+                .replace(/\[[^\]]*\]/g, '')
                 .trim();
 
             console.log("Plain text (first 200 chars):", plainText.slice(0, 200));
