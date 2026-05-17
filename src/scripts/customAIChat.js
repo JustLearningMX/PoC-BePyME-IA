@@ -17,14 +17,14 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(data => {
             if (data && data.name) {
-                // Actualizar título del chat header
-                const chatHeaderTitle = document.querySelector(".chat-header h4");
+                // Actualizar título del chat header del panel personalizado
+                const chatHeaderTitle = document.querySelector("#custom-chat-panel .chat-header h4");
                 if (chatHeaderTitle) {
                     chatHeaderTitle.textContent = "Asistente " + data.name;
                 }
 
-                // Actualizar subtítulo
-                const chatHeaderSubtitle = document.querySelector(".chat-header .header-span");
+                // Actualizar subtítulo del panel personalizado
+                const chatHeaderSubtitle = document.querySelector("#custom-chat-panel .chat-header .header-span");
                 if (chatHeaderSubtitle && data.welcomeMessage) {
                     chatHeaderSubtitle.textContent = data.welcomeMessage;
                 }

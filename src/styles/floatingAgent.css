@@ -1,0 +1,282 @@
+/* ==========================================================================
+   Banorte Premium Floating Agent Style Sheet
+   ========================================================================== */
+
+/* Welcome Landing Page Canvas */
+.welcome-canvas {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    background: radial-gradient(circle at 50% 50%, rgba(235, 25, 45, 0.02) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.banorte-logo-shield {
+    color: #eb192d;
+    margin-bottom: 24px;
+    filter: drop-shadow(0 8px 16px rgba(235, 25, 45, 0.15));
+    animation: pulseShield 3s ease-in-out infinite;
+}
+
+@keyframes pulseShield {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-6px) scale(1.03); }
+}
+
+.welcome-canvas h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1d1d1f;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+}
+
+.welcome-canvas .subtitle {
+    font-size: 16px;
+    color: #86868b;
+    font-weight: 500;
+    margin-bottom: 32px;
+}
+
+.canvas-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 24px;
+    padding: 32px;
+    max-width: 600px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+}
+
+.canvas-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 12px;
+    letter-spacing: -0.015em;
+}
+
+.canvas-card p {
+    font-size: 14px;
+    color: #515154;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.canvas-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    text-align: left;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13.5px;
+    color: #1d1d1f;
+    font-weight: 500;
+}
+
+.step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(235, 25, 45, 0.08);
+    color: #eb192d;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Floating Chat Panel Container */
+.floating-chat-panel {
+    position: fixed;
+    top: 24px;
+    right: 104px; /* Placed perfectly to the left of the floating button space */
+    bottom: 24px;
+    width: 450px;
+    z-index: 1500;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transform: translateY(30px) scale(0.96);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.floating-chat-panel.active {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Adjustments for the inner chat container */
+.floating-chat-panel .chat-container {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* Chat Header layout adjustments with Close Button */
+.floating-chat-panel .chat-header {
+    position: relative;
+    padding-right: 60px;
+}
+
+.chat-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #f5f5f7;
+    border: 0;
+    color: #86868b;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.chat-close-btn:hover {
+    background-color: rgba(235, 25, 45, 0.08);
+    color: #eb192d;
+    transform: scale(1.05);
+}
+
+/* Floating AI Button & Wrapper */
+.floating-ai-trigger-wrap {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.floating-ai-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #eb192d, #b30e1d); /* Premium Banorte Crimson gradient */
+    color: #ffffff;
+    border: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(235, 25, 45, 0.35);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    outline: none;
+}
+
+.floating-ai-button:hover {
+    transform: scale(1.08) rotate(15deg);
+    box-shadow: 0 12px 28px rgba(235, 25, 45, 0.45);
+}
+
+.floating-ai-button:active {
+    transform: scale(0.95);
+}
+
+.floating-ai-button svg {
+    transition: transform 0.3s ease;
+}
+
+.floating-ai-trigger-wrap.menu-open .floating-ai-button {
+    transform: scale(1.05) rotate(135deg); /* Beautiful rotate animation */
+    background: #1d1d1f; /* Elegant black when open */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Floating AI Menu */
+.floating-ai-menu {
+    position: absolute;
+    bottom: 72px;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    padding: 8px;
+    width: 200px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transform: translateY(15px) scale(0.92);
+    opacity: 0;
+    pointer-events: none;
+    transform-origin: bottom right;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.floating-ai-trigger-wrap.menu-open .floating-ai-menu {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.floating-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    color: #1d1d1f;
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.floating-menu-item:hover {
+    background-color: rgba(235, 25, 45, 0.06);
+    color: #eb192d;
+}
+
+.menu-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #86868b;
+    transition: color 0.2s ease;
+}
+
+.floating-menu-item:hover .menu-item-icon {
+    color: #eb192d;
+    transform: scale(1.05);
+}
+
+.menu-item-text {
+    flex: 1;
+}
+
+/* Hide Qlik embed components inside their container by default until active */
+#default-chat-panel qlik-embed {
+    width: 100%;
+    height: 100%;
+    border-radius: 0 0 24px 24px;
+}

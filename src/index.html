@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRM BePyME Asistente | Qlik AI</title>
     <link rel="stylesheet" href="styles/customAIChat.css">
+    <link rel="stylesheet" href="styles/floatingAgent.css">
 
     <!-- This script loads the Qlik Embed Web Components library-->
     <script crossorigin="anonymous" type="application/javascript"
@@ -21,40 +22,113 @@
         <div class="app-subtitle">Tu asistente inteligente de análisis de datos</div>
     </header>
 
+    <!-- Main Canvas Layout -->
     <main class="main-section">
-        <!-- Left Embed Panel -->
-        <article class="main-column">
-            <div class="chat-container">
-                <qlik-embed ui="ai/agentic-assistant" assistant-id="47461ad6-1685-4ed6-a00a-e0f6224b3b0d"
-                    language="es"></qlik-embed>
+        <div class="welcome-canvas">
+            <div class="banorte-logo-shield">
+                <!-- Premium dynamic shield icon indicating security, AI integration and analysis -->
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </div>
-        </article>
-
-        <!-- Right Custom Assistant Panel -->
-        <article class="main-column">
-            <div class="chat-container">
-                <div class="chat-header">
-                    <h4>Tu Agente</h4>
-                    <span class="header-span">Pregunta...</span>
-                </div>
-
-                <div class="chat-body" id="chat-body">
-                    <div class="message assistant">
-                        <div class="bubble">
-                            <p>¿En qué puedo ayudarte?</p>
-                        </div>
+            <h1>Portal de Inteligencia Analítica</h1>
+            <p class="subtitle">CRM BePyME &amp; Qlik Cloud AI</p>
+            <div class="canvas-card">
+                <h3>Bienvenido a su Asistente Inteligente</h3>
+                <p>Explore y analice los datos de su cartera comercial utilizando lenguaje natural. Puede alternar entre el Asistente por Defecto y el Asistente Personalizado utilizando el menú flotante en la esquina inferior derecha.</p>
+                <div class="canvas-steps">
+                    <div class="step-item">
+                        <span class="step-num">1</span>
+                        <span>Haga clic en el botón flotante rojo abajo a la derecha.</span>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">2</span>
+                        <span>Seleccione el tipo de asistente que desea utilizar.</span>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">3</span>
+                        <span>Interactúe, visualice KPIs y consulte sus gráficos analíticos de inmediato.</span>
                     </div>
                 </div>
-                <div class="chat-footer">
-                    <input type="text" id="chat-input" placeholder="Haz tu pregunta aquí..." />
-                    <button id="send-btn">Enviar</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Panels -->
+
+    <!-- 1. Left Embed Panel (Default Qlik-Embed Chat) -->
+    <div id="default-chat-panel" class="floating-chat-panel">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h4>Asistente Qlik</h4>
+                <span class="header-span">Agente inteligente embebido</span>
+                <button class="chat-close-btn">&times;</button>
+            </div>
+            <qlik-embed ui="ai/agentic-assistant" assistant-id="47461ad6-1685-4ed6-a00a-e0f6224b3b0d"
+                language="es"></qlik-embed>
+        </div>
+    </div>
+
+    <!-- 2. Right Custom Assistant Panel (Our Custom Crafted Chat) -->
+    <div id="custom-chat-panel" class="floating-chat-panel">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h4>Tu Agente</h4>
+                <span class="header-span">Pregunta...</span>
+                <button class="chat-close-btn">&times;</button>
+            </div>
+
+            <div class="chat-body" id="chat-body">
+                <div class="message assistant">
+                    <div class="bubble">
+                        <p>¿En qué puedo ayudarte?</p>
+                    </div>
                 </div>
             </div>
-        </article>
-    </main>
+            <div class="chat-footer">
+                <input type="text" id="chat-input" placeholder="Haz tu pregunta aquí..." />
+                <button id="send-btn">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating AI Agent Trigger Button & Menu -->
+    <div class="floating-ai-trigger-wrap">
+        <!-- Floating Menu (appears above the button) -->
+        <div class="floating-ai-menu" id="floating-menu">
+            <button class="floating-menu-item" id="btn-select-default">
+                <span class="menu-item-icon">
+                    <!-- Qlik default chat icon (Standard chat bubble) -->
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </span>
+                <span class="menu-item-text">Por defecto</span>
+            </button>
+            <button class="floating-menu-item" id="btn-select-custom">
+                <span class="menu-item-icon">
+                    <!-- Custom AI agent icon (Sparkle / Star) -->
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                </span>
+                <span class="menu-item-text">Personalizado</span>
+            </button>
+        </div>
+
+        <!-- Floating Button -->
+        <button class="floating-ai-button" id="floating-trigger" title="Seleccionar Asistente">
+            <!-- Sparkles SVG (Banorte crimson-inspired glow) -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                <circle cx="12" cy="12" r="4" fill="currentColor"/>
+            </svg>
+        </button>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="scripts/customAIChat.js"></script>
+    <script src="scripts/floatingAgent.js"></script>
     <script src="https://dataiq-mexico.us.qlikcloud.com/resources/assets/external/requirejs/require.js"></script>
 </body>
 
