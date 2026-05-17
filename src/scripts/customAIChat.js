@@ -4,7 +4,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatBody = document.getElementById("chat-body");
     const chatInput = document.getElementById("chat-input");
     const sendButton = document.getElementById("send-btn");
-    const backendBaseUrl = "http://localhost:3001";
+    //const backendBaseUrl = "http://localhost:3001";
+    const backendBaseUrl = "https://po-c-be-py-me-8t87rybzo-justlearningmxs-projects.vercel.app";
     const qlikConfigPromise = fetch(`${backendBaseUrl}/debug/env`, { credentials: "include" })
         .then((response) => response.ok ? response.json() : {})
         .catch(() => ({}));
@@ -108,11 +109,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const header = document.createElement('div');
             header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); padding-bottom: 8px;';
-            
+
             const title = document.createElement('strong');
             title.style.cssText = 'font-size: 13px; color: #1d1d1f; font-weight: 600;';
             title.textContent = 'Origen de datos (Source)';
-            
+
             const closeBtn = document.createElement('button');
             closeBtn.style.cssText = 'background: none; border: 0; font-size: 16px; color: #86868b; cursor: pointer; padding: 0 4px; line-height: 1;';
             closeBtn.innerHTML = '&times;';
@@ -178,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (!snapshot) return null;
 
                     const visType = snapshot.visualization;
-                    
+
                     const wrapper = document.createElement('div');
                     wrapper.className = 'qlik-snapshot-wrapper';
                     wrapper.setAttribute('data-body-index', String(index));
@@ -311,11 +312,11 @@ document.addEventListener("DOMContentLoaded", () => {
                             const idLower = (action.id || "").toLowerCase();
 
                             // Robust case-insensitive check to identify the View Source action
-                            const isViewSource = verbLower === 'view-source' || 
-                                                 idLower === 'view-source' || 
-                                                 titleLower.includes('source') || 
-                                                 titleLower.includes('fuente') || 
-                                                 titleLower.includes('ver origen');
+                            const isViewSource = verbLower === 'view-source' ||
+                                idLower === 'view-source' ||
+                                titleLower.includes('source') ||
+                                titleLower.includes('fuente') ||
+                                titleLower.includes('ver origen');
 
                             if (isViewSource) {
                                 const btn = document.createElement('button');
@@ -360,7 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     } else {
                                         qlikUrl = tenant;
                                     }
-                                    
+
                                     // Tooltip on Hover
                                     btn.setAttribute('title', `Abrir en Qlik Cloud:\n${qlikUrl}`);
 
@@ -368,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     btn.addEventListener('click', (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        
+
                                         console.log("View source clicked! Opening Qlik URL:", qlikUrl);
                                         // 1. Open Qlik in new tab
                                         window.open(qlikUrl, '_blank');
@@ -432,14 +433,14 @@ document.addEventListener("DOMContentLoaded", () => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const citationIndex = parseInt(link.getAttribute('data-index'), 10);
                 console.log("Citation clicked! Index:", citationIndex);
-                
+
                 const citation = card?.citations?.[citationIndex];
                 const chartPath = citation?.sources?.[0]?.chart;
                 console.log("Citation resolved chartPath:", chartPath);
-                
+
                 if (chartPath) {
                     // Extract the final index (e.g. "/card/body/2" -> 2)
                     const bodyIndex = parseInt(chartPath.split('/').pop(), 10);
