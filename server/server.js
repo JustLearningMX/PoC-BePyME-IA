@@ -6,11 +6,19 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://127.0.0.1:5500";
+const allowedOrigins = [
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "https://justlearningmx.github.io"
+];
+
+if (process.env.FRONTEND_ORIGIN) {
+  allowedOrigins.push(process.env.FRONTEND_ORIGIN);
+}
 
 // Middlewares
 app.use(express.json());
-app.use(cors({ origin: frontendOrigin, credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // Variables de entorno de Qlik
 const QLIK_HOST = process.env.QLIK_HOST || "https://dataiq-mexico.us.qlikcloud.com";
