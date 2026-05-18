@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chat-input");
     const sendButton = document.getElementById("send-btn");
     const backendBaseUrl = "https://po-c-be-py-me-ia.vercel.app";
-    //const backendBaseUrl = "http://localhost:3001";
+    // const backendBaseUrl = "http://localhost:3001";
     const qlikConfigPromise = fetch(`${backendBaseUrl}/debug/env`, { credentials: "include" })
         .then((response) => response.ok ? response.json() : {})
         .catch(() => ({}));
@@ -28,8 +28,32 @@ document.addEventListener("DOMContentLoaded", () => {
         if (loadingOverlay) loadingOverlay.style.display = "flex";
 
         try {
+            // Find Qlik token from sessionStorage
+            let userToken = null;
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                try {
+                    const val = JSON.parse(sessionStorage.getItem(key));
+                    if (val && val.access_token) {
+                        userToken = val.access_token;
+                        break;
+                    }
+                    if (val && val.accessToken) {
+                        userToken = val.accessToken;
+                        break;
+                    }
+                } catch (e) {
+                    // Ignore non-JSON
+                }
+            }
+
+            const headers = { "Accept": "application/json" };
+            if (userToken) {
+                headers["Authorization"] = `Bearer ${userToken}`;
+            }
+
             // First fetch to get 'me'
-            const meRes = await fetch(`${backendBaseUrl}/api/users/me`);
+            const meRes = await fetch(`${backendBaseUrl}/api/users/me`, { headers });
             if (!meRes.ok) throw new Error("Error fetching /api/users/me");
             const meData = await meRes.json();
 
@@ -38,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!userId) throw new Error("User ID not found in /me response");
 
             // Second fetch to get user details
-            const detailsRes = await fetch(`${backendBaseUrl}/api/users/${userId}`);
+            const detailsRes = await fetch(`${backendBaseUrl}/api/users/${userId}`, { headers });
             if (!detailsRes.ok) throw new Error("Error fetching user details");
             const userDetails = await detailsRes.json();
 

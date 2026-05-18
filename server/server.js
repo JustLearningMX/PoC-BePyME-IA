@@ -205,15 +205,18 @@ app.get("/api/assistant", async (req, res) => {
 // 4. Obtener link del usuario actual
 app.get("/api/users/me", async (req, res) => {
   try {
-    if (!QLIK_TOKEN) {
-      return res.status(500).json({ error: "Falta configurar QLIK_TOKEN en el archivo .env" });
+    const authHeader = req.headers.authorization;
+    const tokenToUse = authHeader ? authHeader.replace("Bearer ", "") : QLIK_TOKEN;
+    
+    if (!tokenToUse) {
+      return res.status(401).json({ error: "Falta configurar QLIK_TOKEN o enviar token en Authorization" });
     }
 
     const url = `${QLIK_HOST.replace(/\/$/, "")}/api/v1/users/me`;
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${QLIK_TOKEN}`,
+        "Authorization": `Bearer ${tokenToUse}`,
         "Accept": "application/json"
       }
     });
@@ -232,8 +235,11 @@ app.get("/api/users/me", async (req, res) => {
 // 5. Obtener datos detallados del usuario por ID
 app.get("/api/users/:id", async (req, res) => {
   try {
-    if (!QLIK_TOKEN) {
-      return res.status(500).json({ error: "Falta configurar QLIK_TOKEN en el archivo .env" });
+    const authHeader = req.headers.authorization;
+    const tokenToUse = authHeader ? authHeader.replace("Bearer ", "") : QLIK_TOKEN;
+    
+    if (!tokenToUse) {
+      return res.status(401).json({ error: "Falta configurar QLIK_TOKEN o enviar token en Authorization" });
     }
 
     const userId = req.params.id;
@@ -241,7 +247,7 @@ app.get("/api/users/:id", async (req, res) => {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${QLIK_TOKEN}`,
+        "Authorization": `Bearer ${tokenToUse}`,
         "Accept": "application/json"
       }
     });
