@@ -4,8 +4,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatBody = document.getElementById("chat-body");
     const chatInput = document.getElementById("chat-input");
     const sendButton = document.getElementById("send-btn");
-    // const backendBaseUrl = "https://po-c-be-py-me-ia.vercel.app";
-    const backendBaseUrl = "http://localhost:3001";
+    const backendBaseUrl = "https://po-c-be-py-me-ia.vercel.app";
+    //const backendBaseUrl = "http://localhost:3001";
     const qlikConfigPromise = fetch(`${backendBaseUrl}/debug/env`, { credentials: "include" })
         .then((response) => response.ok ? response.json() : {})
         .catch(() => ({}));
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (customChatUserEmail) {
                 customChatUserEmail.textContent = userDetails.email;
             }
-            
+
             if (userDetails.name) {
                 const firstName = userDetails.name.split(" ")[0];
                 if (initialGreetingText) {
