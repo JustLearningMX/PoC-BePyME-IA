@@ -4,10 +4,69 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatBody = document.getElementById("chat-body");
     const chatInput = document.getElementById("chat-input");
     const sendButton = document.getElementById("send-btn");
-    const backendBaseUrl = "https://po-c-be-py-me-ia.vercel.app";
+    // const backendBaseUrl = "https://po-c-be-py-me-ia.vercel.app";
+    const backendBaseUrl = "http://localhost:3001";
     const qlikConfigPromise = fetch(`${backendBaseUrl}/debug/env`, { credentials: "include" })
         .then((response) => response.ok ? response.json() : {})
         .catch(() => ({}));
+
+    // Fetch User Data
+    const loadingOverlay = document.getElementById("custom-chat-loading");
+    const errorContainer = document.getElementById("custom-chat-error");
+    const errorCloseBtn = document.querySelector(".error-close-btn");
+    const customChatTitle = document.getElementById("custom-chat-title");
+    const customChatSubtitle = document.getElementById("custom-chat-subtitle");
+    const initialGreetingText = document.getElementById("initial-greeting-text");
+
+    if (errorCloseBtn) {
+        errorCloseBtn.addEventListener("click", () => {
+            errorContainer.style.display = "none";
+        });
+    }
+
+    async function loadUserData() {
+        if (loadingOverlay) loadingOverlay.style.display = "flex";
+
+        try {
+            // First fetch to get 'me'
+            const meRes = await fetch(`${backendBaseUrl}/api/users/me`);
+            if (!meRes.ok) throw new Error("Error fetching /api/users/me");
+            const meData = await meRes.json();
+
+            // Getting the user ID from response
+            const userId = meData.id || (meData.links && meData.links.self && meData.links.self.href ? meData.links.self.href.split('/').pop() : null);
+            if (!userId) throw new Error("User ID not found in /me response");
+
+            // Second fetch to get user details
+            const detailsRes = await fetch(`${backendBaseUrl}/api/users/${userId}`);
+            if (!detailsRes.ok) throw new Error("Error fetching user details");
+            const userDetails = await detailsRes.json();
+
+            // Success, update UI
+            const customChatUserEmail = document.getElementById("custom-chat-user-email");
+            if (customChatUserEmail) {
+                customChatUserEmail.textContent = userDetails.email;
+            }
+            
+            if (userDetails.name) {
+                const firstName = userDetails.name.split(" ")[0];
+                if (initialGreetingText) {
+                    initialGreetingText.textContent = `Hola ${firstName}, ¿en qué puedo ayudarte?`;
+                }
+                if (chatInput) {
+                    chatInput.placeholder = `${firstName}, escribe tu pregunta aquí...`;
+                }
+            }
+
+        } catch (error) {
+            console.error("Error loading user data:", error);
+            if (errorContainer) errorContainer.style.display = "flex";
+        } finally {
+            if (loadingOverlay) loadingOverlay.style.display = "none";
+        }
+    }
+
+    loadUserData();
 
     // Cargar metadatos del asistente al iniciar
     fetch(`${backendBaseUrl}/api/assistant`)

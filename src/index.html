@@ -9,12 +9,13 @@
     <link rel="stylesheet" href="styles/floatingAgent.css">
 
     <!-- This script loads the Qlik Embed Web Components library-->
-    <!-- data-redirect-uri="http://127.0.0.1:5500/src/oauth_callback.html" data-access-token-storage="session" -->
+    <!-- data-redirect-uri="http://127.0.0.1:5500/src/oauth_callback.html"  -->
+    <!-- data-redirect-uri="https://justlearningmx.github.io/PoC-BePyME-IA/src/oauth_callback.html" -->
     <script crossorigin="anonymous" type="application/javascript"
         src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components@1/dist/index.min.js"
         data-host="https://dataiq-mexico.us.qlikcloud.com" data-client-id="7f319abbd9122edb0b11e5d0c1bd46e7"
-        data-redirect-uri="https://justlearningmx.github.io/PoC-BePyME-IA/src/oauth_callback.html"
-        data-access-token-storage="session" data-auto-redirect="true"></script>
+        data-redirect-uri="http://127.0.0.1:5500/src/oauth_callback.html" data-access-token-storage="session"
+        data-auto-redirect="true"></script>
 </head>
 
 <body>
@@ -77,18 +78,36 @@
     <div id="custom-chat-panel" class="floating-chat-panel">
         <div class="chat-container">
             <div class="chat-header">
-                <h4>Tu Agente</h4>
-                <span class="header-span">Pregunta...</span>
+                <h4 id="custom-chat-title">Tu Agente</h4>
+                <span class="header-span" id="custom-chat-subtitle">Pregunta...</span>
+                <span class="header-user-email" id="custom-chat-user-email" style="font-size: 11px; color: #86868b; display: block; margin-top: 2px;"></span>
                 <button class="chat-close-btn">&times;</button>
             </div>
 
+            <!-- Loading Overlay -->
+            <div id="custom-chat-loading" class="loading-overlay">
+                <div class="fancy-spinner">
+                    <div class="dot" style="background-color: #1d1d1f;"></div>
+                    <div class="dot" style="background-color: #1d1d1f;"></div>
+                    <div class="dot" style="background-color: #1d1d1f;"></div>
+                </div>
+                <p>Cargando datos del usuario...</p>
+            </div>
+
             <div class="chat-body" id="chat-body">
-                <div class="message assistant">
+                <div class="message assistant" id="initial-greeting-message">
                     <div class="bubble">
-                        <p>¿En qué puedo ayudarte?</p>
+                        <p id="initial-greeting-text">¿En qué puedo ayudarte?</p>
                     </div>
                 </div>
             </div>
+
+            <!-- Error Message Container -->
+            <div id="custom-chat-error" class="chat-error-message" style="display: none;">
+                <span>No se pudo cargar el nombre e email</span>
+                <button class="error-close-btn">&times;</button>
+            </div>
+
             <div class="chat-footer">
                 <input type="text" id="chat-input" placeholder="Haz tu pregunta aquí..." />
                 <button id="send-btn">Enviar</button>

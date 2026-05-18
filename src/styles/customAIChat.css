@@ -715,3 +715,48 @@ qlik-embed {
     height: 100%;
     width: 100%;
 }
+
+/* Loading overlay for custom chat */
+.loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    background: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    position: absolute;
+    top: 74px; /* below header */
+    left: 0;
+    right: 0;
+    z-index: 10;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.loading-overlay p {
+    font-size: 13px;
+    color: #86868b;
+    font-weight: 500;
+}
+
+/* Error message at the bottom */
+.chat-error-message {
+    background-color: #fef0f0;
+    color: #eb192d;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    border-top: 1px solid rgba(235, 25, 45, 0.2);
+}
+
+.error-close-btn {
+    background: none;
+    border: none;
+    color: #eb192d;
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+}

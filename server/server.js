@@ -202,6 +202,61 @@ app.get("/api/assistant", async (req, res) => {
   }
 });
 
+// 4. Obtener link del usuario actual
+app.get("/api/users/me", async (req, res) => {
+  try {
+    if (!QLIK_TOKEN) {
+      return res.status(500).json({ error: "Falta configurar QLIK_TOKEN en el archivo .env" });
+    }
+
+    const url = `${QLIK_HOST.replace(/\/$/, "")}/api/v1/users/me`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${QLIK_TOKEN}`,
+        "Accept": "application/json"
+      }
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Error al obtener usuario actual", details: data });
+    }
+    res.json(data);
+  } catch (error) {
+    console.error("Error en GET /api/users/me:", error);
+    res.status(500).json({ error: "Error interno del servidor", details: error.message });
+  }
+});
+
+// 5. Obtener datos detallados del usuario por ID
+app.get("/api/users/:id", async (req, res) => {
+  try {
+    if (!QLIK_TOKEN) {
+      return res.status(500).json({ error: "Falta configurar QLIK_TOKEN en el archivo .env" });
+    }
+
+    const userId = req.params.id;
+    const url = `${QLIK_HOST.replace(/\/$/, "")}/api/v1/users/${userId}`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${QLIK_TOKEN}`,
+        "Accept": "application/json"
+      }
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Error al obtener detalles del usuario", details: data });
+    }
+    res.json(data);
+  } catch (error) {
+    console.error("Error en GET /api/users/:id:", error);
+    res.status(500).json({ error: "Error interno del servidor", details: error.message });
+  }
+});
+
 // Alias para retrocompatibilidad con la versión anterior si el frontend aún lo usa
 app.get("/stream-answers", async (req, res) => {
   // Redirigimos el comportamiento al nuevo endpoint pasando los parámetros de query.
