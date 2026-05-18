@@ -32,6 +32,16 @@ document.addEventListener("DOMContentLoaded", () => {
             let userToken = null;
             for (let i = 0; i < sessionStorage.length; i++) {
                 const key = sessionStorage.key(i);
+                if (key.includes("qlik-qmfe-api") && key.includes("-access-token")) {
+                    const rawVal = sessionStorage.getItem(key);
+                    // It could be a direct raw string or JSON
+                    if (rawVal && rawVal.startsWith("eyJ")) {
+                        userToken = rawVal;
+                        break;
+                    }
+                }
+
+                // Fallback for other formats just in case
                 try {
                     const val = JSON.parse(sessionStorage.getItem(key));
                     if (val && val.access_token) {
